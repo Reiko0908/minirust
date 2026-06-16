@@ -1,0 +1,37 @@
+# Ignore virtual environment and generated files
+venv/
+__pycache__/
+*.class
+*.jar
+src/grammar/*.py
+src/grammar/*.tokens
+src/grammar/*.interp
+# IDE/editor files
+.idea/
+*.swp
+*.swo
+
+# Exceptions for required runtime libraries
+!src/runtime/*.jar
+!src/runtime/*.class
+
+# Read-only system and configuration files
+src/run.py
+src/utils/AST.py
+src/utils/Visitor.py
+src/utils/lexerror.py
+src/codegen/Frame.py
+src/codegen/Error.py
+src/codegen/Io.py
+src/codegen/JasminCode.py
+src/codegen/Utils.py
+src/codegen/__init__.py
+src/checker/StaticError.py
+src/runtime/io.class
+src/runtime/io.java
+src/runtime/jasmin.jar
+test/TestUtils.py
+requirements.txt
+__init__.py
+specification/
+
