@@ -100,9 +100,6 @@ fragment Digits : [0-9]+;
 fragment Exp    : [eE] [+-]? Digits;
 fragment Esc    : '\\' ('n' | 't' | '"' | '\\');
 
-BIN_LIT         : '0'[Bb][01]+;
-OCT_LIT         : '0'[0-7]+;
-HEX_LIT         : '0'[xX][0-9a-fA-F]+;
 INT_LIT         : Digits;
 
 FLOAT_LIT       : Digits '.' Digits Exp? | Digits Exp;
@@ -111,7 +108,7 @@ STRING_LIT      : '"' (Esc | ~["\\\r\n])* '"';
 // --------------------------------
 // IDENTIFIER
 // --------------------------------
-ID              : [a-zA-Z_][a-zA-Z0-9]*;
+ID              : [a-zA-Z_][a-zA-Z0-9_]*;
 
 // --------------------------------
 // COMMENTS & WHITESPACE
@@ -123,14 +120,14 @@ WS              : [ \t\r\n]+ -> skip;
 // --------------------------------
 // LEXICAL ERROR
 // --------------------------------
-UNCLOSED_STRING : '"' (Esc | ~["\\\r\n])* (EOF | '\r'? '\n')
+UNCLOSE_STRING  : '"' (Esc | ~["\\\r\n])* (EOF | '\r'? '\n')
                   {
                     content = self.text[1:];
                     if (content.endswith('\r\n')):
                       content = content[:-2]
                     elif (content.endswith('\n') or content.endswith('\r')):
                       content = content[:-1]
-                    raise UnclosedString(content, self.line)
+                    raise UncloseString(content, self.line)
                   };
 
 ILLEGAL_ESCAPE  : '"' (Esc | ~["\\\r\n])* '\\' ~[nt"\\]
