@@ -1,0 +1,38 @@
+name: Submit Assignment
+
+on:
+  push:
+    # Bỏ qua các push từ chính grader bot để tránh vòng lặp vô tận:
+    # Khi grading_engine.py push GRADE.md lên repo sinh viên,
+    # nó trigger workflow này → phải block lại.
+    branches-ignore: []   # placeholder — điều kiện thật ở job level bên dưới
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    # Bỏ qua nếu commit được tạo bởi Auto Grader Bot
+    if: >
+      github.actor != 'github-actions[bot]' && 
+      !contains(github.event.head_commit.message, '[skip actions]') &&
+      contains(github.event.head_commit.message, '[submit]')
+    # Get OIDC from GitHub
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Get OIDC and submit
+        run: |
+          
+          ACTIONS_TOKEN=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://github-grader-proxy" \
+            | jq -r '.value')
+
+          curl -fsSL -X POST "https://github-grader-proxy.nhphung.workers.dev" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${ACTIONS_TOKEN}" \
+            -d "{\"student_id\": \"${{ github.actor }}\", \"repository\": \"${{ github.repository }}\", \"commit_sha\": \"${{ github.sha }}\"}"
