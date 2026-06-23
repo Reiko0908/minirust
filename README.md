@@ -282,6 +282,26 @@ If you accidentally modify a file that must not be changed (such as `src/utils/A
    ```bash
    git push origin main
    ```
+### 5.4. Grading Results, Explicit Submission, and Push Policy
+
+1. **How to Trigger the Autograder (`[submit]` keyword)**: 
+   To prevent consuming your grading quota on broken or incomplete code, the remote autograder **will NOT run automatically** on every standard `git push`. 
+   * **To push draft code without grading:** Simply commit and push your code with any normal message. You are encouraged to commit frequently to back up your progress.
+   * **To officially trigger the autograder for a test run:** You **MUST** append the exact keyword **`[submit]`** (including square brackets) anywhere inside your commit message. 
+   
+   *Example of a valid grading trigger:*
+   ```bash
+   git commit -m "Implement basic arithmetic parser rules [submit]"
+   git push origin main
+2. **Grading Quota & Limits:**
+   - The maximum number of test runs allowed for each assignment is dynamically configured and read from the max_submissions configuration field inside the global deadlines.json below.
+   - Any push containing the [submit] keyword after this quota is reached will be rejected by the grading queue and flagged as Exceeded submission limit.
+   - Pushes without the [submit] keyword never count against your quota and are unlimited.
+3. **Final Score Policy:**
+   The explicit test runs requested via [submit] during the semester are purely for your feedback and self-assessment.
+   **CRITICAL:** The definitive version used to calculate your final grade for the assignment will be the absolute last push available on your main branch before the official deadline timestamp, regardless of whether that final commit contains the [submit] keyword or not.
+4. **View Grading Results:**
+   The grading process takes a few minutes to complete after your commit is pushed, so please wait until the commit status check (a small green checkmark or red cross next to the commit SHA on GitHub) appears. You can then click on the icon and select **Details** to view your detailed score report.
 ## 6. Discussion & Code Review
 
 - All questions related to the assignments should be posted in the **Discussion** forum of the course repository.

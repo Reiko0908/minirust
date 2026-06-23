@@ -1,0 +1,1 @@
+Program([FuncDecl(Id(Id(main)), [], <class 'utils.AST.VoidType'>, Block([ExprStmt(CallExpr(Id(Id(pprint)), [IntLiteral(1)]))]))])

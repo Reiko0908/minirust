@@ -1,0 +1,1 @@
+Program([FuncDecl(Id(main), [], VoidType, Block([ExprStmt(CallExpr(Id(pprint), [IntLiteral(1)]))]))])

@@ -35,3 +35,6 @@ requirements.txt
 __init__.py
 specification/
 
+
+# GitHub configuration
+.github/
