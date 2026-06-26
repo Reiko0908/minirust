@@ -4,28 +4,209 @@ grammar MiniRust;
 from utils.lexerror import *
 }
 
-// ====================
+// ================================
 // Parser Rules
-// ====================
-
+// ================================
 program
-    : funcDecl EOF
+    : structDecl* funcDecl* EOF
     ;
 
+// --------------------------------
+// Struct Declaration
+// --------------------------------
+structDecl
+    : STRUCT ID LBRACE fieldDecl (COMMA fieldDecl)* RBRACE
+    ;
+
+fieldDecl
+    : ID COLON typeName
+    ;
+
+// --------------------------------
+// Function Declaration
+// --------------------------------
 funcDecl
-    : FN ID LPAREN RPAREN block
+    : FN ID LPAREN paramList? RPAREN (ARROW typeName)? block
     ;
 
+paramList
+    : param (COMMA param)*
+    ;
+
+param
+    : ID COLON typeName
+    ;
+
+// --------------------------------
+// Type
+// --------------------------------
+typeName
+    : primitiveType
+    | arrayType
+    | ID
+    ;
+
+primitiveType
+    : I32 | F32 | BOOL | STRING | VOID
+    ;
+
+arrayType
+    : LBRACK typeName SEMI INT_LIT RBRACK
+    ;
+
+// --------------------------------
+// Blocks & Statements
+// --------------------------------
 block
-    : LBRACE statement RBRACE
+    : LBRACE stmt* RBRACE
     ;
 
-statement
-    : callExpr SEMI
+stmt
+    : varDecl
+    | exprStmt
+    | ifStmt
+    | switchStmt
+    | whileStmt
+    | forStmt
+    | breakStmt
+    | continueStmt
+    | returnStmt
+    | block
     ;
 
-callExpr
-    : ID LPAREN INT_LIT RPAREN
+varDecl
+    : LET MUT? ID (COLON typeName)? (ASSIGN expr)? SEMI
+    ;
+
+exprStmt
+    : expr SEMI
+    ;
+
+ifStmt
+    : IF expr block (ELSE (block | ifStmt))?
+    ;
+
+switchStmt
+    : SWITCH expr LBRACE switchItem+ RBRACE
+    ;
+
+switchItem
+    : caseClause
+    | defaultClause
+    ;
+
+caseClause
+    : CASE literal COLON stmt*
+    ;
+
+defaultClause
+    : DEFAULT COLON stmt*
+    ;
+
+literal
+    : INT_LIT
+    | FLOAT_LIT
+    | STRING_LIT
+    | TRUE
+    | FALSE
+    ;
+
+whileStmt
+    : WHILE expr block
+    ;
+
+forStmt
+    : FOR ID IN expr RANGE expr block
+    ;
+
+breakStmt
+    : BREAK SEMI
+    ;
+
+continueStmt
+    : CONTINUE SEMI
+    ;
+
+returnStmt
+    : RETURN expr? SEMI
+    ;
+
+// --------------------------------
+// Expressions
+// --------------------------------
+expr
+    : assignExpr
+    ;
+
+assignExpr
+    : orExpr (ASSIGN assignExpr)?
+    ;
+
+orExpr
+    : andExpr (OR andExpr)*
+    ;
+
+andExpr
+    : eqExpr (AND eqExpr)*
+    ;
+
+eqExpr
+    : relExpr ((EQ | NEQ) relExpr)?
+    ;
+
+relExpr
+    : addExpr ((LT | GT | LEQ | GEQ) addExpr)?
+    ;
+
+addExpr
+    : mulExpr ((ADD | SUB) mulExpr)*
+    ;
+
+mulExpr
+    : unaryExpr ((MUL | DIV | MOD) unaryExpr)*
+    ;
+
+unaryExpr
+    : (NOT | SUB) unaryExpr
+    | postfixExpr
+    ;
+
+postfixExpr
+    : primary postfixOp*
+    ;
+
+postfixOp
+    : DOT ID
+    | LBRACK expr RBRACK
+    | LPAREN argList? RPAREN
+    ;
+
+argList
+    : expr (COMMA expr)*
+    ;
+
+primary
+    : LPAREN expr RPAREN
+    | INT_LIT
+    | FLOAT_LIT
+    | STRING_LIT
+    | TRUE
+    | FALSE
+    | arrayLit
+    | structInit
+    | ID
+    ;
+
+arrayLit
+    : LBRACK (expr (COMMA expr)*)? RBRACK
+    ;
+
+structInit
+    : ID LBRACE fieldInit (COMMA fieldInit)* RBRACE
+    ;
+
+fieldInit
+    : ID COLON expr
     ;
 
 // ================================
@@ -75,8 +256,8 @@ GT              : '>';
 NOT             : '!';
 ASSIGN          : '=';
 
-PLUS            : '+';
-MINUS           : '-';
+ADD             : '+';
+SUB             : '-';
 MUL             : '*';
 DIV             : '/';
 MOD             : '%';
@@ -101,7 +282,6 @@ fragment Exp    : [eE] [+-]? Digits;
 fragment Esc    : '\\' ('n' | 't' | '"' | '\\');
 
 INT_LIT         : Digits;
-
 FLOAT_LIT       : Digits '.' Digits Exp? | Digits Exp;
 STRING_LIT      : '"' (Esc | ~["\\\r\n])* '"';
 
@@ -128,10 +308,13 @@ UNCLOSE_STRING  : '"' (Esc | ~["\\\r\n])* (EOF | '\r'? '\n')
                     elif (content.endswith('\n') or content.endswith('\r')):
                       content = content[:-1]
                     raise UncloseString(content, self.line)
-                  };
+                  }
+                ;
 
 ILLEGAL_ESCAPE  : '"' (Esc | ~["\\\r\n])* '\\' ~[nt"\\]
-                  { raise IllegalEscape(self.text[1:], self.line) };
+                  { raise IllegalEscape(self.text[1:], self.line) }
+                ;
 
 ERROR_TOKEN     : .
-                  { raise ErrorToken(self.text, self.line) };
+                  { raise ErrorToken(self.text, self.line) }
+                ;
