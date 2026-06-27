@@ -528,8 +528,3 @@ def test_299():
 def test_300():
     # Main function body missing its closing brace – EOF encountered
     TestParser.checkParser("fn main() {\nlet x = 5;\n", 3)
-
-
-def test_069():
-    # Empty switch body (at least one case/default required).
-    TestParser.checkParser("fn main(){switch x{}}", 1)

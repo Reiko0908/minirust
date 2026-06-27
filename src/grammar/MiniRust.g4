@@ -58,12 +58,11 @@ arrayType
 // Blocks & Statements
 // --------------------------------
 block
-    : LBRACE stmt* RBRACE
+    : LBRACE (stmt | varDecl)* RBRACE
     ;
 
 stmt
-    : varDecl
-    | exprStmt
+    : exprStmt
     | ifStmt
     | switchStmt
     | whileStmt
@@ -75,8 +74,9 @@ stmt
     ;
 
 varDecl
-    : LET MUT ID (COLON typeName)? (ASSIGN expr)? SEMI
-    | LET ID (COLON typeName)? ASSIGN expr SEMI
+    : LET MUT? ID COLON typeName ASSIGN expr SEMI
+    | LET MUT? ID COLON typeName SEMI
+    | LET MUT? ID ASSIGN expr SEMI
     ;
 
 exprStmt
@@ -97,11 +97,11 @@ switchItem
     ;
 
 caseClause
-    : CASE literal COLON stmt*
+    : CASE literal COLON (stmt | varDecl)*
     ;
 
 defaultClause
-    : DEFAULT COLON stmt*
+    : DEFAULT COLON (stmt | varDecl)*
     ;
 
 literal
