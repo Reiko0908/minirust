@@ -75,7 +75,8 @@ stmt
     ;
 
 varDecl
-    : LET MUT? ID (COLON typeName)? (ASSIGN expr)? SEMI
+    : LET MUT ID (COLON typeName)? (ASSIGN expr)? SEMI
+    | LET ID (COLON typeName)? ASSIGN expr SEMI
     ;
 
 exprStmt
@@ -138,8 +139,13 @@ expr
     : assignExpr
     ;
 
+lvalue
+    : ID (DOT ID | LBRACK expr RBRACK)*
+    ;
+
 assignExpr
-    : orExpr (ASSIGN assignExpr)?
+    : lvalue ASSIGN assignExpr
+    | orExpr
     ;
 
 orExpr
@@ -283,7 +289,16 @@ fragment Esc    : '\\' ('n' | 't' | '"' | '\\');
 
 INT_LIT         : Digits;
 FLOAT_LIT       : Digits '.' Digits Exp? | Digits Exp;
-STRING_LIT      : '"' (Esc | ~["\\\r\n])* '"';
+STRING_LIT      : '"' (Esc | ~["\\\r\n])* '"'
+                  {
+                    s = self.text[1:-1]
+                    s = s.replace("\\n", "\n")
+                    s = s.replace("\\t", "\t")
+                    s = s.replace('\\"', '"')
+                    s = s.replace("\\\\", "\\")
+                    self.text = s
+                  }
+                ;
 
 // --------------------------------
 // IDENTIFIER
@@ -300,21 +315,21 @@ WS              : [ \t\r\n]+ -> skip;
 // --------------------------------
 // LEXICAL ERROR
 // --------------------------------
-UNCLOSE_STRING  : '"' (Esc | ~["\\\r\n])* (EOF | '\r'? '\n')
+UNCLOSE_STRING  : '"' (Esc | ~["\\\r\n])* '\\'? (EOF | '\r'? '\n' | '\r')
                   {
                     content = self.text[1:];
                     if (content.endswith('\r\n')):
                       content = content[:-2]
                     elif (content.endswith('\n') or content.endswith('\r')):
                       content = content[:-1]
-                    raise UncloseString(content, self.line)
+                    raise UncloseString(content)
                   }
                 ;
 
 ILLEGAL_ESCAPE  : '"' (Esc | ~["\\\r\n])* '\\' ~[nt"\\]
-                  { raise IllegalEscape(self.text[1:], self.line) }
+                  { raise IllegalEscape(self.text[1:]) }
                 ;
 
 ERROR_TOKEN     : .
-                  { raise ErrorToken(self.text, self.line) }
+                  { raise ErrorToken(self.text) }
                 ;
