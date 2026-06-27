@@ -75,7 +75,7 @@ stmt
 
 varDecl
     : LET MUT? ID COLON typeName ASSIGN expr SEMI
-    | LET MUT? ID COLON typeName SEMI
+    | LET MUT ID COLON typeName SEMI
     | LET MUT? ID ASSIGN expr SEMI
     ;
 
@@ -139,13 +139,8 @@ expr
     : assignExpr
     ;
 
-lvalue
-    : ID (DOT ID | LBRACK expr RBRACK)*
-    ;
-
 assignExpr
-    : lvalue ASSIGN assignExpr
-    | orExpr
+    : orExpr (ASSIGN assignExpr)?
     ;
 
 orExpr
@@ -184,23 +179,19 @@ postfixExpr
 postfixOp
     : DOT ID
     | LBRACK expr RBRACK
-    | LPAREN argList? RPAREN
-    ;
-
-argList
-    : expr (COMMA expr)*
     ;
 
 primary
     : LPAREN expr RPAREN
-    | INT_LIT
-    | FLOAT_LIT
-    | STRING_LIT
-    | TRUE
-    | FALSE
+    | literal
     | arrayLit
     | structInit
+    | ID LPAREN argList? RPAREN
     | ID
+    ;
+
+argList
+    : expr (COMMA expr)*
     ;
 
 arrayLit
