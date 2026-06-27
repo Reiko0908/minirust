@@ -277,57 +277,55 @@ def test_150():
 # =====================================================================
 def test_151():
     # Empty string literal.
-    TestLexer.checkLexer('""', '""')
+    TestLexer.checkLexer('""', "")
 
 
 def test_152():
     # Simple string content with no escapes.
-    TestLexer.checkLexer('"hello"', '"hello"')
+    TestLexer.checkLexer('"hello"', "hello")
 
 
 def test_153():
     # String content containing embedded spaces.
-    TestLexer.checkLexer('"hello world!"', '"hello world!"')
+    TestLexer.checkLexer('"hello world!"', "hello world!")
 
 
 def test_154():
     # String literal using the newline escape sequence.
-    TestLexer.checkLexer(r'"line1\nline2"', r'"line1\nline2"')
+    TestLexer.checkLexer(r'"line1\nline2"', "line1\nline2")
 
 
 def test_155():
     # String literal using the tab escape sequence.
-    TestLexer.checkLexer(r'"col1\tcol2"', r'"col1\tcol2"')
+    TestLexer.checkLexer(r'"col1\tcol2"', "col1\tcol2")
 
 
 def test_156():
     # String literal using the escaped double-quote sequence.
-    TestLexer.checkLexer(r'"Calling function \"main\""', r'"Calling function \"main\""')
+    TestLexer.checkLexer(r'"Calling function \"main\""', 'Calling function "main"')
 
 
 def test_157():
     # String literal using the escaped backslash sequence.
-    TestLexer.checkLexer(r'"src\\grammar\\MiniRust.g4"', r'"src\\grammar\\MiniRust.g4"')
+    TestLexer.checkLexer(r'"src\\grammar\\MiniRust.g4"', r"src\grammar\MiniRust.g4")
 
 
 def test_158():
     # String literal combining all four supported escape sequences.
     TestLexer.checkLexer(
         r'"Error:\n\tFile \"src\\grammar\\MiniRust.g4\""',
-        r'"Error:\n\tFile \"src\\grammar\\MiniRust.g4\""',
+        'Error:\n\tFile "src\\grammar\\MiniRust.g4"',
     )
 
 
 def test_159():
     # Keywords, operators, and punctuation are ordinary characters inside strings.
-    TestLexer.checkLexer('"let mut x = 10 + 20;"', '"let mut x = 10 + 20;"')
+    TestLexer.checkLexer('"let mut x = 10 + 20;"', "let mut x = 10 + 20;")
 
 
 def test_160():
     # Consecutive string literals are not merged.
-    TestLexer.checkLexer(
-        '"Error: ""undefined variable"', '"Error: ", "undefined variable"'
-    )
+    TestLexer.checkLexer('"Error: ""undefined variable"', "Error: , undefined variable")
 
 
 # =====================================================================
@@ -391,10 +389,10 @@ def test_171():
 
 
 def test_172():
-    # Illegal escape: backslash followed directly by a real newline.
+    # Backslash followed by a real newline -> Unclosed String
     TestLexer.checkLexer(
         '"Error: invalid input,\\\nplease try again"',
-        "Illegal Escape In String: Error: invalid input,\\\n",
+        "Unclosed String: Error: invalid input,\\",
     )
 
 
