@@ -139,8 +139,13 @@ expr
     : assignExpr
     ;
 
+lvalue
+    : ID (DOT ID | LBRACK expr RBRACK)*
+    ;
+
 assignExpr
-    : orExpr (ASSIGN assignExpr)?
+    : lvalue ASSIGN assignExpr
+    | orExpr
     ;
 
 orExpr
@@ -182,12 +187,12 @@ postfixOp
     ;
 
 primary
-    : LPAREN expr RPAREN
-    | literal
+    : literal
+    | ID
     | arrayLit
     | structInit
+    | LPAREN expr RPAREN
     | ID LPAREN argList? RPAREN
-    | ID
     ;
 
 argList
@@ -313,14 +318,14 @@ UNCLOSE_STRING  : '"' (Esc | ~["\\\r\n])* '\\'? (EOF | '\r'? '\n' | '\r')
                       content = content[:-2]
                     elif (content.endswith('\n') or content.endswith('\r')):
                       content = content[:-1]
-                    raise UncloseString(content)
+                    raise UncloseString(content, self.line)
                   }
                 ;
 
 ILLEGAL_ESCAPE  : '"' (Esc | ~["\\\r\n])* '\\' ~[nt"\\]
-                  { raise IllegalEscape(self.text[1:]) }
+                  { raise IllegalEscape(self.text[1:], self.line) }
                 ;
 
 ERROR_TOKEN     : .
-                  { raise ErrorToken(self.text) }
+                  { raise ErrorToken(self.text, self.line) }
                 ;
