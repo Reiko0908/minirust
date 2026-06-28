@@ -2,12 +2,12 @@
 
 - **Student:** `@2453025`
 - **Assignment:** Assignment 1 (Lexer & Parser)
-- **Attempt:** `3`
+- **Attempt:** `4`
 - **Evaluation:** **Passed ✅**
 
 ### 📈 Final Score Summary
 - **Lexer:** **` 100 `** *(Passed: 100 | Penalty: -0)*
-- **Parser:** **` 99 `** *(Passed: 99 | Penalty: -0)*
+- **Parser:** **` 100 `** *(Passed: 100 | Penalty: -0)*
 
 
 ### 🧪 Phase 1: Student Test Suite Evaluation (Static)
@@ -21,8 +21,7 @@
 | Component | Command | Passed | Failed | Status |
 |---|---|---|---|---|
 | Lexer | `python src/run.py test-lexer` | 100 | 0 | Completed |
-| Parser | `python src/run.py test-parser` | 99 | 1 | Completed |
+| Parser | `python src/run.py test-parser` | 100 | 0 | Completed |
 
 
-### 🎯 Failed Tests Summary
-- **Parser**: `259`
+### 🎉 Outstanding! Your code passed all hidden test cases.
