@@ -88,12 +88,12 @@ ifStmt
     ;
 
 switchStmt
-    : SWITCH expr LBRACE switchItem+ RBRACE
+    : SWITCH expr LBRACE switchBody RBRACE
     ;
 
-switchItem
-    : caseClause
-    | defaultClause
+switchBody
+    : defaultClause caseClause+
+    | caseClause+ defaultClause? caseClause*
     ;
 
 caseClause
