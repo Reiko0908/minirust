@@ -58,11 +58,12 @@ arrayType
 // Blocks & Statements
 // --------------------------------
 block
-    : LBRACE (stmt | varDecl)* RBRACE
+    : LBRACE stmt* RBRACE
     ;
 
 stmt
-    : exprStmt
+    : varDecl
+    | exprStmt
     | ifStmt
     | switchStmt
     | whileStmt
@@ -97,11 +98,11 @@ switchBody
     ;
 
 caseClause
-    : CASE literal COLON (stmt | varDecl)*
+    : CASE literal COLON stmt*
     ;
 
 defaultClause
-    : DEFAULT COLON (stmt | varDecl)*
+    : DEFAULT COLON stmt*
     ;
 
 literal
@@ -173,8 +174,7 @@ mulExpr
     ;
 
 unaryExpr
-    : (NOT | SUB) unaryExpr
-    | postfixExpr
+    : (NOT | SUB)* postfixExpr
     ;
 
 postfixExpr
@@ -188,11 +188,15 @@ postfixOp
 
 primary
     : literal
-    | ID
     | arrayLit
     | structInit
+    | callExpr
+    | ID
     | LPAREN expr RPAREN
-    | ID LPAREN argList? RPAREN
+    ;
+
+callExpr
+    : ID LPAREN argList? RPAREN
     ;
 
 argList
