@@ -1,0 +1,18 @@
+[
+  "test/test-ast.py::test_300",
+  "test/test-checker.py::test_401",
+  "test/test-checker.py::test_402",
+  "test/test-checker.py::test_undeclared_function",
+  "test/test-codegen.py::test_001",
+  "test/test-codegen.py::test_002",
+  "test/test-lexer.py::test_101",
+  "test/test-lexer.py::test_102",
+  "test/test-lexer.py::test_103",
+  "test/test-lexer.py::test_104",
+  "test/test-lexer.py::test_105",
+  "test/test-parser.py::test_201",
+  "test/test-parser.py::test_202",
+  "test/test-parser.py::test_203",
+  "test/test-parser.py::test_204",
+  "test/test-parser.py::test_205"
+]

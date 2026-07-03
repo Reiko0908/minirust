@@ -1,0 +1,3 @@
+{
+  "test/test-checker.py::test_undeclared_function": true
+}
