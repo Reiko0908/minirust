@@ -30,12 +30,12 @@ class Decl(AST):
 
 class StructDecl(Decl):
     def __init__(self, name, fields):
-        self.name = name  # str
+        self.name = name  # Id
         self.fields = fields  # list[VarDecl]
 
     def __str__(self):
         fields_str = ', '.join(str(f) for f in self.fields)
-        return f"StructDecl(Id({self.name}), [{fields_str}])"
+        return f"StructDecl({self.name}, [{fields_str}])"
 
     def accept(self, visitor, o):
         return visitor.visitStructDecl(self, o)
@@ -43,14 +43,14 @@ class StructDecl(Decl):
 
 class FuncDecl(Decl):
     def __init__(self, name, params, return_type, body):
-        self.name = name  # str
+        self.name = name  # Id
         self.params = params  # list[VarDecl]
         self.return_type = return_type  # Type
         self.body = body  # Block
 
     def __str__(self):
         params_str = ', '.join(str(p) for p in self.params)
-        return f"FuncDecl(Id({self.name}), [{params_str}], {self.return_type}, {self.body})"
+        return f"FuncDecl({self.name}, [{params_str}], {self.return_type}, {self.body})"
 
     def accept(self, visitor, o):
         return visitor.visitFuncDecl(self, o)
@@ -58,14 +58,14 @@ class FuncDecl(Decl):
 
 class VarDecl(AST):
     def __init__(self, name, var_type, init=None, is_mut=False):
-        self.name = name  # str
-        self.var_type = var_type  # Type
+        self.name = name  # Id
+        self.var_type = var_type  # Type or None
         self.init = init  # Expr or None
         self.is_mut = is_mut  # bool
 
     def __str__(self):
         init_str = str(self.init) if self.init is not None else "None"
-        return f"VarDecl(Id({self.name}), {self.var_type}, {init_str}, {self.is_mut})"
+        return f"VarDecl({self.name}, {self.var_type}, {init_str}, {self.is_mut})"
 
     def accept(self, visitor, o):
         return visitor.visitVarDecl(self, o)
@@ -129,10 +129,10 @@ class ArrayType(Type):
 
 class StructType(Type):
     def __init__(self, name):
-        self.name = name  # str
+        self.name = name  # Id
 
     def __str__(self):
-        return f"StructType(Id({self.name}))"
+        return f"StructType({self.name})"
 
     def accept(self, visitor, o):
         return visitor.visitStructType(self, o)
@@ -182,39 +182,40 @@ class While(Stmt):
 
 class For(Stmt):
     def __init__(self, var_name, start, end, body):
-        self.var_name = var_name  # str
+        self.var_name = var_name  # Id
         self.start = start  # Expr
         self.end = end  # Expr
         self.body = body  # Stmt
 
     def __str__(self):
-        return f"For(Id({self.var_name}), {self.start}, {self.end}, {self.body})"
+        return f"For({self.var_name}, {self.start}, {self.end}, {self.body})"
 
     def accept(self, visitor, o):
         return visitor.visitFor(self, o)
 
 
 class Switch(Stmt):
-    def __init__(self, expr, cases, default_stmt):
+    def __init__(self, expr, cases):
         self.expr = expr  # Expr
         self.cases = cases  # list[Case]
-        self.default_stmt = default_stmt  # Stmt
 
     def __str__(self):
         cases_str = ', '.join(str(c) for c in self.cases)
-        return f"Switch({self.expr}, [{cases_str}], {self.default_stmt})"
+        return f"Switch({self.expr}, [{cases_str}])"
 
     def accept(self, visitor, o):
         return visitor.visitSwitch(self, o)
 
 
 class Case(AST):
-    def __init__(self, value, body):
-        self.value = value  # Expr (Literal)
-        self.body = body  # Stmt
+    def __init__(self, val, body):
+        self.val = val  # Expr or None
+        self.body = body  # list[Stmt]
 
     def __str__(self):
-        return f"Case({self.value}, {self.body})"
+        val_str = str(self.val) if self.val is not None else "None"
+        body_str = ', '.join(str(s) for s in self.body)
+        return f"Case({val_str}, [{body_str}])"
 
     def accept(self, visitor, o):
         return visitor.visitCase(self, o)
@@ -290,12 +291,12 @@ class UnaryOp(Expr):
 
 class CallExpr(Expr):
     def __init__(self, name, args):
-        self.name = name  # str
+        self.name = name  # Id
         self.args = args  # list[Expr]
 
     def __str__(self):
         args_str = ', '.join(str(a) for a in self.args)
-        return f"CallExpr(Id({self.name}), [{args_str}])"
+        return f"CallExpr({self.name}, [{args_str}])"
 
     def accept(self, visitor, o):
         return visitor.visitCallExpr(self, o)
@@ -327,10 +328,10 @@ class ArrayCell(Expr):
 class FieldAccess(Expr):
     def __init__(self, obj, field):
         self.obj = obj  # Expr
-        self.field = field  # str
+        self.field = field  # Id
 
     def __str__(self):
-        return f"FieldAccess({self.obj}, Id({self.field}))"
+        return f"FieldAccess({self.obj}, {self.field})"
 
     def accept(self, visitor, o):
         return visitor.visitFieldAccess(self, o)
@@ -338,12 +339,12 @@ class FieldAccess(Expr):
 
 class StructInit(Expr):
     def __init__(self, name, initializers):
-        self.name = name  # str
+        self.name = name  # Id
         self.initializers = initializers  # list[FieldInit]
 
     def __str__(self):
         inits_str = ', '.join(str(i) for i in self.initializers)
-        return f"StructInit(Id({self.name}), [{inits_str}])"
+        return f"StructInit({self.name}, [{inits_str}])"
 
     def accept(self, visitor, o):
         return visitor.visitStructInit(self, o)
@@ -351,11 +352,11 @@ class StructInit(Expr):
 
 class FieldInit(AST):
     def __init__(self, name, expr):
-        self.name = name  # str
+        self.name = name  # Id
         self.expr = expr  # Expr
 
     def __str__(self):
-        return f"FieldInit(Id({self.name}), {self.expr})"
+        return f"FieldInit({self.name}, {self.expr})"
 
     def accept(self, visitor, o):
         return visitor.visitFieldInit(self, o)
