@@ -58,12 +58,11 @@ arrayType
 // Blocks & Statements
 // --------------------------------
 block
-    : LBRACE stmt* RBRACE
+    : LBRACE (stmt | varDecl)* RBRACE
     ;
 
 stmt
-    : varDecl
-    | exprStmt
+    : exprStmt
     | ifStmt
     | switchStmt
     | whileStmt
@@ -98,11 +97,11 @@ switchBody
     ;
 
 caseClause
-    : CASE literal COLON stmt*
+    : CASE literal COLON (stmt | varDecl)*
     ;
 
 defaultClause
-    : DEFAULT COLON stmt*
+    : DEFAULT COLON (stmt | varDecl)*
     ;
 
 literal
