@@ -34,7 +34,7 @@ class ASTGenerator(MiniRustVisitor):
         params = []
         if ctx.paramList():
             params = [self.visit(p) for p in ctx.paramList().param()]
-        return_type = self.visit(ctx.typeName()) if ctx.typeName() else None
+        return_type = self.visit(ctx.typeName()) if ctx.typeName() else VoidType()
         body = self.visit(ctx.block())
         return FuncDecl(name, params, return_type, body)
 
@@ -78,18 +78,16 @@ class ASTGenerator(MiniRustVisitor):
     def _visit_body_items(self, ctx):
         result = []
         for c in ctx.children:
-            if isinstance(c,(MiniRustParser.StatementContext, MiniRustParser.VarDeclContext)):
-                result.append(self.visit(c))
+            node = self.visit(c)
+            if node is not None:
+                result.append(node)
         return result
 
     def visitBlock(self, ctx: MiniRustParser.BlockContext):
         return Block(self._visit_body_items(ctx))
 
     def visitStmt(self, ctx: MiniRustParser.StmtContext):
-        for child in ctx.getChildren():
-            if isinstance(child, ParserRuleContext):
-                return self.visit(child)
-        return None
+        return self.visit(ctx.getChild(0))
 
     def visitVarDecl(self, ctx: MiniRustParser.VarDeclContext):
         name = ctx.ID().getText()
