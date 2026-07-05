@@ -57,7 +57,7 @@ class ASTGenerator(MiniRustVisitor):
         return StructType(ctx.ID().getText())
 
     _PRIMITIVE_TYPES_ = {
-        'int'   : IntType(),
+        'i32'   : IntType(),
         'f32'   : FloatType(),
         'bool'  : BoolType(),
         'string': StringType(),
@@ -79,7 +79,7 @@ class ASTGenerator(MiniRustVisitor):
         result = []
         for c in ctx.children:
             node = self.visit(c)
-            if node is not None:
+            if isinstance(node, (Stmt, VarDecl)):
                 result.append(node)
         return result
 
@@ -112,9 +112,9 @@ class ASTGenerator(MiniRustVisitor):
 
     def visitSwitchStmt(self, ctx: MiniRustParser.SwitchStmtContext):
         expr = self.visit(ctx.expr())
-        body = self.visit(ctx.switchBody())
+        body = ctx.switchBody()
         cases_stmt = [self.visit(c) for c in body.caseClause()]
-        default_stmt = self.visit(body.defaultClause()) if body.defaultClause() else None
+        default_stmt = self.visit(body.defaultClause()) if body.defaultClause() else Block([])
         return Switch(expr, cases_stmt, default_stmt)
     
     def visitCaseClause(self, ctx: MiniRustParser.CaseClauseContext):
@@ -154,7 +154,7 @@ class ASTGenerator(MiniRustVisitor):
         return self.visit(ctx.assignExpr())
     
     def visitLvalue(self, ctx: MiniRustParser.LvalueContext):
-        result = Id(ctx.ID().getText())
+        result = Id(ctx.ID(0).getText())
         id_idx = 1
         expr_idx = 0
         for child in ctx.children[1:]:
@@ -174,7 +174,7 @@ class ASTGenerator(MiniRustVisitor):
             return Assign(lhs, rhs)
         return self.visit(ctx.orExpr())
 
-    def _visitLeftAssoc(self,ctx):
+    def _visitLeftAssoc(self, ctx):
         children = ctx.children
         result = self.visit(children[0])
         i = 1
@@ -185,7 +185,7 @@ class ASTGenerator(MiniRustVisitor):
             i += 2
         return result
 
-    def _visitNonAssoc(self,ctx, operand_accessor):
+    def _visitNonAssoc(self, ctx, operand_accessor):
         operand = operand_accessor()
         left = self.visit(operand[0])
         if len(operand) == 1:
@@ -222,7 +222,7 @@ class ASTGenerator(MiniRustVisitor):
         result = self.visit(ctx.primary())
         for op_ctx in ctx.postfixOp():
             if op_ctx.getChild(0).getText() == '.':
-                result = FieldAccess(result, Id(op_ctx.ID().getText()))
+                result = FieldAccess(result, op_ctx.ID().getText())
             else:
                 result = ArrayCell(result, self.visit(op_ctx.expr()))
         return result
