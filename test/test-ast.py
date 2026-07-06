@@ -5,7 +5,9 @@ import sys
 from antlr4 import *
 
 # Add source directory to path
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src")
+)
 
 from TestUtils import TestAST
 
@@ -48,8 +50,7 @@ def test_302():
     # Function returning void (no arrow) vs typed return
     check_ast(
         r"""
-        fn greet() {
-        }
+        fn greet() { }
         fn add(a: i32, b: i32) -> i32 {
             return a + b;
         }
@@ -152,10 +153,29 @@ def test_308():
     )
 
 
+def test_309():
+    # Struct containing another struct as a field
+    check_ast(
+        r"""
+        struct Point {
+            x: i32, y: i32
+        }
+
+        struct Line {
+            start: Point, end: Point
+        }
+        """,
+        "Program([StructDecl(Id(Point), [VarDecl(Id(x), IntType, None, False), "
+        "VarDecl(Id(y), IntType, None, False)]), "
+        "StructDecl(Id(Line), [VarDecl(Id(start), StructType(Id(Point)), None, False), "
+        "VarDecl(Id(end), StructType(Id(Point)), None, False)])])",
+    )
+
+
 # =============================================================================
 # Group 2: Control Flow (test_309 - test_321)
 # =============================================================================
-def test_309():
+def test_310():
     # Simple if without else
     check_ast(
         r"""
@@ -171,7 +191,7 @@ def test_309():
     )
 
 
-def test_310():
+def test_311():
     # if / else
     check_ast(
         r"""
@@ -191,7 +211,7 @@ def test_310():
     )
 
 
-def test_311():
+def test_312():
     # Deeply nested if-else-if chain
     check_ast(
         r"""
@@ -215,7 +235,7 @@ def test_311():
     )
 
 
-def test_312():
+def test_313():
     # while loop
     check_ast(
         r"""
@@ -231,7 +251,7 @@ def test_312():
     )
 
 
-def test_313():
+def test_314():
     # for-in range loop
     check_ast(
         r"""
@@ -247,7 +267,7 @@ def test_313():
     )
 
 
-def test_314():
+def test_315():
     # for-in with variable bounds
     check_ast(
         r"""
@@ -263,7 +283,7 @@ def test_314():
     )
 
 
-def test_315():
+def test_316():
     # break inside while
     check_ast(
         r"""
@@ -278,7 +298,7 @@ def test_315():
     )
 
 
-def test_316():
+def test_317():
     # continue inside for
     check_ast(
         r"""
@@ -293,7 +313,7 @@ def test_316():
     )
 
 
-def test_317():
+def test_318():
     # break/continue combined with nested if conditions
     check_ast(
         r"""
@@ -317,7 +337,7 @@ def test_317():
     )
 
 
-def test_318():
+def test_319():
     # return without a value
     check_ast(
         r"""
@@ -329,7 +349,7 @@ def test_318():
     )
 
 
-def test_319():
+def test_320():
     # return with a value
     check_ast(
         r"""
@@ -341,7 +361,7 @@ def test_319():
     )
 
 
-def test_320():
+def test_321():
     # Nested lexical blocks (bare braces) inside a function body
     check_ast(
         r"""
@@ -360,7 +380,7 @@ def test_320():
     )
 
 
-def test_321():
+def test_322():
     # if condition contains a nested block as the then branch with multiple statements
     check_ast(
         r"""
@@ -382,7 +402,7 @@ def test_321():
 # =============================================================================
 # Group 3: Switch Statement, C-style (test_322 - test_326)
 # =============================================================================
-def test_322():
+def test_323():
     # switch with multiple cases and a default clause
     check_ast(
         r"""
@@ -395,13 +415,14 @@ def test_322():
         }
         """,
         "Program([FuncDecl(Id(main), [], VoidType, Block([Switch(Id(x), ["
-        "Case(IntLiteral(1), Block([ExprStmt(Assign(Id(y), IntLiteral(1)))])), "
-        "Case(IntLiteral(2), Block([ExprStmt(Assign(Id(y), IntLiteral(2)))]))], "
-        "Block([ExprStmt(Assign(Id(y), IntLiteral(0)))]))]))])",
+        "Case(IntLiteral(1), [ExprStmt(Assign(Id(y), IntLiteral(1)))]), "
+        "Case(IntLiteral(2), [ExprStmt(Assign(Id(y), IntLiteral(2)))]), "
+        "Case(None, [ExprStmt(Assign(Id(y), IntLiteral(0)))])"
+        "])]))])",
     )
 
 
-def test_323():
+def test_324():
     # switch with no default clause (default is optional)
     check_ast(
         r"""
@@ -413,13 +434,13 @@ def test_323():
         }
         """,
         "Program([FuncDecl(Id(main), [], VoidType, Block([Switch(Id(x), ["
-        "Case(IntLiteral(1), Block([ExprStmt(Assign(Id(y), IntLiteral(1)))])), "
-        "Case(IntLiteral(2), Block([ExprStmt(Assign(Id(y), IntLiteral(2)))]))], "
-        "Block([]))]))])",
+        "Case(IntLiteral(1), [ExprStmt(Assign(Id(y), IntLiteral(1)))]), "
+        "Case(IntLiteral(2), [ExprStmt(Assign(Id(y), IntLiteral(2)))])"
+        "])]))])",
     )
 
 
-def test_324():
+def test_325():
     # fall-through chain: case 1: case 2: shares the body of case 2
     check_ast(
         r"""
@@ -431,13 +452,14 @@ def test_324():
         }
         """,
         "Program([FuncDecl(Id(main), [], VoidType, Block([Switch(Id(x), ["
-        "Case(IntLiteral(1), Block([])), "
-        "Case(IntLiteral(2), Block([ExprStmt(Assign(Id(y), IntLiteral(1)))]))], "
-        "Block([ExprStmt(Assign(Id(y), IntLiteral(0)))]))]))])",
+        "Case(IntLiteral(1), []), "
+        "Case(IntLiteral(2), [ExprStmt(Assign(Id(y), IntLiteral(1)))]), "
+        "Case(None, [ExprStmt(Assign(Id(y), IntLiteral(0)))])"
+        "])]))])",
     )
 
 
-def test_325():
+def test_326():
     # nested lexical block inside a case clause
     check_ast(
         r"""
@@ -452,13 +474,14 @@ def test_325():
         }
         """,
         "Program([FuncDecl(Id(main), [], VoidType, Block([Switch(Id(x), ["
-        "Case(IntLiteral(1), Block([Block([VarDecl(Id(z), None, IntLiteral(1), False), "
-        "ExprStmt(Assign(Id(y), Id(z)))])]))], "
-        "Block([ExprStmt(Assign(Id(y), IntLiteral(0)))]))]))])",
+        "Case(IntLiteral(1), [Block([VarDecl(Id(z), None, IntLiteral(1), False), "
+        "ExprStmt(Assign(Id(y), Id(z)))])]), "
+        "Case(None, [ExprStmt(Assign(Id(y), IntLiteral(0)))])"
+        "])]))])",
     )
 
 
-def test_326():
+def test_327():
     # switch scrutinee is a logical/relational expression, case values are bool literals
     check_ast(
         r"""
@@ -470,15 +493,16 @@ def test_326():
         }
         """,
         "Program([FuncDecl(Id(main), [], VoidType, Block([Switch(BinaryOp('>', Id(a), Id(b)), ["
-        "Case(BoolLiteral(True), Block([ExprStmt(Assign(Id(y), IntLiteral(1)))]))], "
-        "Block([ExprStmt(Assign(Id(y), IntLiteral(0)))]))]))])",
+        "Case(BoolLiteral(True), [ExprStmt(Assign(Id(y), IntLiteral(1)))]), "
+        "Case(None, [ExprStmt(Assign(Id(y), IntLiteral(0)))])"
+        "])]))])",
     )
 
 
 # =============================================================================
 # Group 4: Arrays & Struct Instantiation (test_327 - test_336)
 # =============================================================================
-def test_327():
+def test_328():
     # Simple array declaration with array literal
     check_ast(
         r"""
@@ -492,7 +516,7 @@ def test_327():
     )
 
 
-def test_328():
+def test_329():
     # Multidimensional array type and literal
     check_ast(
         r"""
@@ -508,7 +532,7 @@ def test_328():
     )
 
 
-def test_329():
+def test_330():
     # Empty array literal
     check_ast(
         r"""
@@ -521,7 +545,7 @@ def test_329():
     )
 
 
-def test_330():
+def test_331():
     # Single and chained array indexing
     check_ast(
         r"""
@@ -536,7 +560,7 @@ def test_330():
     )
 
 
-def test_331():
+def test_332():
     # Simple struct instantiation
     check_ast(
         r"""
@@ -552,7 +576,7 @@ def test_331():
     )
 
 
-def test_332():
+def test_333():
     # Struct instantiation with a nested struct-typed field initializer
     check_ast(
         r"""
@@ -576,7 +600,7 @@ def test_332():
     )
 
 
-def test_333():
+def test_334():
     # Field access, including chained field access
     check_ast(
         r"""
@@ -591,7 +615,7 @@ def test_333():
     )
 
 
-def test_334():
+def test_335():
     # Boundary mixing: field access on an array cell, and array cell on a field access
     check_ast(
         r"""
@@ -607,7 +631,7 @@ def test_334():
     )
 
 
-def test_335():
+def test_336():
     # Array literal whose elements are arbitrary expressions
     check_ast(
         r"""
@@ -622,7 +646,7 @@ def test_335():
     )
 
 
-def test_336():
+def test_337():
     # Struct with an array-typed field, instantiated with an array literal
     check_ast(
         r"""
@@ -645,7 +669,7 @@ def test_336():
 # =============================================================================
 # Group 5: Literals & Escape Sequences (test_337 - test_346)
 # =============================================================================
-def test_337():
+def test_338():
     # Boolean literals
     check_ast(
         r"""
@@ -660,7 +684,7 @@ def test_337():
     )
 
 
-def test_338():
+def test_339():
     # Floating-point scientific/exponential notation
     check_ast(
         r"""
@@ -677,7 +701,7 @@ def test_338():
     )
 
 
-def test_339():
+def test_340():
     # \n escape sequence
     check_ast(
         r"""
@@ -690,7 +714,7 @@ def test_339():
     )
 
 
-def test_340():
+def test_341():
     # \t escape sequence
     check_ast(
         r"""
@@ -703,7 +727,7 @@ def test_340():
     )
 
 
-def test_341():
+def test_342():
     # \" escape sequence
     check_ast(
         r"""
@@ -716,7 +740,7 @@ def test_341():
     )
 
 
-def test_342():
+def test_343():
     # \\ escape sequence
     check_ast(
         r"""
@@ -729,7 +753,7 @@ def test_342():
     )
 
 
-def test_343():
+def test_344():
     # Nested/combined escape sequences within one string
     check_ast(
         r"""
@@ -743,7 +767,7 @@ def test_343():
     )
 
 
-def test_344():
+def test_345():
     # Plain string literal with no escapes
     check_ast(
         r"""
@@ -756,7 +780,7 @@ def test_344():
     )
 
 
-def test_345():
+def test_346():
     # Negative int/float literals via unary minus
     check_ast(
         r"""
@@ -771,7 +795,7 @@ def test_345():
     )
 
 
-def test_346():
+def test_347():
     # Boolean literals inside an array literal, and a string field in struct init
     check_ast(
         r"""
@@ -797,7 +821,7 @@ def test_346():
 # =============================================================================
 # Group 6: Function Calls & Return (test_347 - test_351)
 # =============================================================================
-def test_347():
+def test_348():
     # Library function invocations with a single argument each
     check_ast(
         r"""
@@ -812,7 +836,7 @@ def test_347():
     )
 
 
-def test_348():
+def test_349():
     # Function call with no arguments
     check_ast(
         r"""
@@ -825,7 +849,7 @@ def test_348():
     )
 
 
-def test_349():
+def test_350():
     # Multi-argument call with a nested call as an argument
     check_ast(
         r"""
@@ -839,7 +863,7 @@ def test_349():
     )
 
 
-def test_350():
+def test_351():
     # Return carrying a call expression (with a nested call argument)
     check_ast(
         r"""
@@ -853,7 +877,7 @@ def test_350():
     )
 
 
-def test_351():
+def test_352():
     # Return carrying a complex arithmetic expression
     check_ast(
         r"""
@@ -871,7 +895,7 @@ def test_351():
 # =============================================================================
 # Group 7: Operators & Precedence (test_352 - test_380)
 # =============================================================================
-def test_352():
+def test_353():
     # Unary minus and unary not
     check_ast(
         r"""
@@ -886,7 +910,7 @@ def test_352():
     )
 
 
-def test_353():
+def test_354():
     # Chained/stacked unary operators
     check_ast(
         r"""
@@ -903,7 +927,7 @@ def test_353():
     )
 
 
-def test_354():
+def test_355():
     # Multiplicative operators are left-associative and share precedence
     check_ast(
         r"""
@@ -916,7 +940,7 @@ def test_354():
     )
 
 
-def test_355():
+def test_356():
     # Additive operators are left-associative
     check_ast(
         r"""
@@ -929,7 +953,7 @@ def test_355():
     )
 
 
-def test_356():
+def test_357():
     # Multiplicative binds tighter than additive
     check_ast(
         r"""
@@ -944,7 +968,7 @@ def test_356():
     )
 
 
-def test_357():
+def test_358():
     # Parentheses override default precedence
     check_ast(
         r"""
@@ -957,7 +981,7 @@ def test_357():
     )
 
 
-def test_358():
+def test_359():
     # Equality operators (non-associative, single application)
     check_ast(
         r"""
@@ -972,7 +996,7 @@ def test_358():
     )
 
 
-def test_359():
+def test_360():
     # All four relational operators
     check_ast(
         r"""
@@ -991,7 +1015,7 @@ def test_359():
     )
 
 
-def test_360():
+def test_361():
     # Relational binds tighter than equality
     check_ast(
         r"""
@@ -1004,7 +1028,7 @@ def test_360():
     )
 
 
-def test_361():
+def test_362():
     # Additive binds tighter than relational
     check_ast(
         r"""
@@ -1018,7 +1042,7 @@ def test_361():
     )
 
 
-def test_362():
+def test_363():
     # Logical AND and OR
     check_ast(
         r"""
@@ -1033,7 +1057,7 @@ def test_362():
     )
 
 
-def test_363():
+def test_364():
     # AND binds tighter than OR
     check_ast(
         r"""
@@ -1048,7 +1072,7 @@ def test_363():
     )
 
 
-def test_364():
+def test_365():
     # Relational binds tighter than logical AND
     check_ast(
         r"""
@@ -1061,7 +1085,7 @@ def test_364():
     )
 
 
-def test_365():
+def test_366():
     # Full ladder mixed together: equality/relational under AND under OR
     check_ast(
         r"""
@@ -1075,7 +1099,7 @@ def test_365():
     )
 
 
-def test_366():
+def test_367():
     # Simple right-associative assignment
     check_ast(
         r"""
@@ -1088,7 +1112,7 @@ def test_366():
     )
 
 
-def test_367():
+def test_368():
     # Assignment chain of three
     check_ast(
         r"""
@@ -1101,7 +1125,7 @@ def test_367():
     )
 
 
-def test_368():
+def test_369():
     # Unary not combined with logical AND
     check_ast(
         r"""
@@ -1114,7 +1138,7 @@ def test_368():
     )
 
 
-def test_369():
+def test_370():
     # Unary minus binds tighter than additive; parens override it
     check_ast(
         r"""
@@ -1129,7 +1153,7 @@ def test_369():
     )
 
 
-def test_370():
+def test_371():
     # Binary minus followed by unary minus operand
     check_ast(
         r"""
@@ -1142,7 +1166,7 @@ def test_370():
     )
 
 
-def test_371():
+def test_372():
     # Assignment target is a field access (member assignment chain)
     check_ast(
         r"""
@@ -1155,7 +1179,7 @@ def test_371():
     )
 
 
-def test_372():
+def test_373():
     # Parenthesized assignment used as a sub-expression
     check_ast(
         r"""
@@ -1168,7 +1192,7 @@ def test_372():
     )
 
 
-def test_373():
+def test_374():
     # Multiplicative and unary combined
     check_ast(
         r"""
@@ -1183,7 +1207,7 @@ def test_373():
     )
 
 
-def test_374():
+def test_375():
     # Modulo combined with addition (precedence check)
     check_ast(
         r"""
@@ -1196,7 +1220,7 @@ def test_374():
     )
 
 
-def test_375():
+def test_376():
     # Division and subtraction mix, left to right within each precedence level
     check_ast(
         r"""
@@ -1209,7 +1233,7 @@ def test_375():
     )
 
 
-def test_376():
+def test_377():
     # Equality with a call and a field access as operands
     check_ast(
         r"""
@@ -1222,7 +1246,7 @@ def test_376():
     )
 
 
-def test_377():
+def test_378():
     # Assignment right-hand side is a full logical expression
     check_ast(
         r"""
@@ -1235,7 +1259,7 @@ def test_377():
     )
 
 
-def test_378():
+def test_379():
     # Not applied to a parenthesized relational expression
     check_ast(
         r"""
@@ -1248,7 +1272,7 @@ def test_378():
     )
 
 
-def test_379():
+def test_380():
     # Assignment to an array cell, right-hand side uses full precedence ladder
     check_ast(
         r"""
@@ -1262,7 +1286,7 @@ def test_379():
     )
 
 
-def test_380():
+def test_381():
     # Large mixed-precedence expression exercising every level at once
     check_ast(
         r"""
@@ -1280,7 +1304,7 @@ def test_380():
 # =============================================================================
 # Group 8: Nested Complex Accesses (test_381 - test_395)
 # =============================================================================
-def test_381():
+def test_382():
     # Array index expression is itself a nested array access
     check_ast(
         r"""
@@ -1294,7 +1318,7 @@ def test_381():
     )
 
 
-def test_382():
+def test_383():
     # Call result indexed then field-accessed: func(a)[0].b
     check_ast(
         r"""
@@ -1307,7 +1331,7 @@ def test_382():
     )
 
 
-def test_383():
+def test_384():
     # Deep chained field access
     check_ast(
         r"""
@@ -1320,7 +1344,7 @@ def test_383():
     )
 
 
-def test_384():
+def test_385():
     # Deep chained array indexing
     check_ast(
         r"""
@@ -1334,7 +1358,7 @@ def test_384():
     )
 
 
-def test_385():
+def test_386():
     # Alternating index/field boundaries: arr -> field -> index -> field
     check_ast(
         r"""
@@ -1348,7 +1372,7 @@ def test_385():
     )
 
 
-def test_386():
+def test_387():
     # Triple nested function calls
     check_ast(
         r"""
@@ -1361,7 +1385,7 @@ def test_386():
     )
 
 
-def test_387():
+def test_388():
     # Array index expression containing a function call
     check_ast(
         r"""
@@ -1374,7 +1398,7 @@ def test_387():
     )
 
 
-def test_388():
+def test_389():
     # Two deep chains combined by an arithmetic operator
     check_ast(
         r"""
@@ -1388,7 +1412,7 @@ def test_388():
     )
 
 
-def test_389():
+def test_390():
     # Index expression is itself a field access on both sides
     check_ast(
         r"""
@@ -1401,7 +1425,7 @@ def test_389():
     )
 
 
-def test_390():
+def test_391():
     # Swapped nested array-index assignment (matrix transpose-style)
     check_ast(
         r"""
@@ -1415,7 +1439,7 @@ def test_390():
     )
 
 
-def test_391():
+def test_392():
     # Assignment between two field-then-index chains
     check_ast(
         r"""
@@ -1429,7 +1453,7 @@ def test_391():
     )
 
 
-def test_392():
+def test_393():
     # Parenthesized expression as the base of an index access
     check_ast(
         r"""
@@ -1442,7 +1466,7 @@ def test_392():
     )
 
 
-def test_393():
+def test_394():
     # Nested access boundary: index -> field -> index -> field
     check_ast(
         r"""
@@ -1456,7 +1480,7 @@ def test_393():
     )
 
 
-def test_394():
+def test_395():
     # Arithmetic precedence still applies inside a nested index expression
     check_ast(
         r"""
@@ -1469,7 +1493,7 @@ def test_394():
     )
 
 
-def test_395():
+def test_396():
     # Field-field-index-field boundary chain
     check_ast(
         r"""
@@ -1486,7 +1510,7 @@ def test_395():
 # =============================================================================
 # Group 9: Chained Assignment Expressions (test_396 - test_399)
 # =============================================================================
-def test_396():
+def test_397():
     # Assignment expression used inside an if-condition
     check_ast(
         r"""
@@ -1502,7 +1526,7 @@ def test_396():
     )
 
 
-def test_397():
+def test_398():
     # Chained assignment where every target is a field access
     check_ast(
         r"""
@@ -1516,7 +1540,7 @@ def test_397():
     )
 
 
-def test_398():
+def test_399():
     # Chained assignment of three array-cell targets
     check_ast(
         r"""
@@ -1530,7 +1554,7 @@ def test_398():
     )
 
 
-def test_399():
+def test_400():
     # Chained assignment whose final right-hand side is a relational expression
     check_ast(
         r"""

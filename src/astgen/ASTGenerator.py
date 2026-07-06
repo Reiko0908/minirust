@@ -1,16 +1,20 @@
 import os
 import sys
+
 from antlr4 import *
 
 # Add grammar path to sys.path so we can import grammar classes cleanly
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "grammar"))
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "grammar")
+)
 
 from MiniRustParser import MiniRustParser
 from MiniRustVisitor import MiniRustVisitor
+
 from utils.AST import *
 
-class ASTGenerator(MiniRustVisitor):
 
+class ASTGenerator(MiniRustVisitor):
     # ==============================================================
     # Program & Declarations
     # ==============================================================
@@ -20,17 +24,17 @@ class ASTGenerator(MiniRustVisitor):
         return Program(decls)
 
     def visitStructDecl(self, ctx: MiniRustParser.StructDeclContext):
-        name = ctx.ID().getText()
+        name = Id(ctx.ID().getText())
         fields = [self.visit(f) for f in ctx.fieldDecl()]
         return StructDecl(name, fields)
 
     def visitFieldDecl(self, ctx: MiniRustParser.FieldDeclContext):
-        name = ctx.ID().getText()
+        name = Id(ctx.ID().getText())
         field_type = self.visit(ctx.typeName())
         return VarDecl(name, field_type, None, False)
 
     def visitFuncDecl(self, ctx: MiniRustParser.FuncDeclContext):
-        name = ctx.ID().getText()
+        name = Id(ctx.ID().getText())
         params = []
         if ctx.paramList():
             params = [self.visit(p) for p in ctx.paramList().param()]
@@ -42,7 +46,7 @@ class ASTGenerator(MiniRustVisitor):
         return [self.visit(p) for p in ctx.param()]
 
     def visitParam(self, ctx: MiniRustParser.ParamContext):
-        name = ctx.ID().getText()
+        name = Id(ctx.ID().getText())
         param_type = self.visit(ctx.typeName())
         return VarDecl(name, param_type, None, False)
 
@@ -54,14 +58,14 @@ class ASTGenerator(MiniRustVisitor):
             return self.visit(ctx.primitiveType())
         elif ctx.arrayType():
             return self.visit(ctx.arrayType())
-        return StructType(ctx.ID().getText())
+        return StructType(Id(ctx.ID().getText()))
 
     _PRIMITIVE_TYPES_ = {
-        'i32'   : IntType(),
-        'f32'   : FloatType(),
-        'bool'  : BoolType(),
-        'string': StringType(),
-        'void'  : VoidType(),
+        "i32": IntType(),
+        "f32": FloatType(),
+        "bool": BoolType(),
+        "string": StringType(),
+        "void": VoidType(),
     }
 
     def visitPrimitiveType(self, ctx: MiniRustParser.PrimitiveTypeContext):
@@ -90,7 +94,7 @@ class ASTGenerator(MiniRustVisitor):
         return self.visit(ctx.getChild(0))
 
     def visitVarDecl(self, ctx: MiniRustParser.VarDeclContext):
-        name = ctx.ID().getText()
+        name = Id(ctx.ID().getText())
         mutable = ctx.MUT() is not None
         var_type = self.visit(ctx.typeName()) if ctx.typeName() else None
         init = self.visit(ctx.expr()) if ctx.expr() else None
@@ -98,7 +102,7 @@ class ASTGenerator(MiniRustVisitor):
 
     def visitExprStmt(self, ctx: MiniRustParser.ExprStmtContext):
         return ExprStmt(self.visit(ctx.expr()))
-    
+
     def visitIfStmt(self, ctx: MiniRustParser.IfStmtContext):
         cond = self.visit(ctx.expr())
         then_stmt = self.visit(ctx.block(0))
@@ -110,28 +114,33 @@ class ASTGenerator(MiniRustVisitor):
                 else_stmt = self.visit(ctx.block(1))
         return If(cond, then_stmt, else_stmt)
 
-    def visitSwitchStmt(self, ctx: MiniRustParser.SwitchStmtContext):
+    def visitSwitchStmt(self, ctx):
         expr = self.visit(ctx.expr())
         body = ctx.switchBody()
-        cases_stmt = [self.visit(c) for c in body.caseClause()]
-        default_stmt = self.visit(body.defaultClause()) if body.defaultClause() else Block([])
-        return Switch(expr, cases_stmt, default_stmt)
-    
-    def visitCaseClause(self, ctx: MiniRustParser.CaseClauseContext):
-        expr = self.visit(ctx.literal())
-        stmt = Block(self._visit_body_items(ctx))
-        return Case(expr, stmt)
-    
-    def visitDefaultClause(self, ctx: MiniRustParser.DefaultClauseContext):
-        return Block(self._visit_body_items(ctx))
-    
+
+        cases = [self.visit(c) for c in body.caseClause()]
+
+        if body.defaultClause():
+            cases.append(self.visit(body.defaultClause()))
+
+        return Switch(expr, cases)
+
+    def visitCaseClause(self, ctx):
+        val = self.visit(ctx.literal())
+        body = self._visit_body_items(ctx)
+        return Case(val, body)
+
+    def visitDefaultClause(self, ctx):
+        body = self._visit_body_items(ctx)
+        return Case(None, body)
+
     def visitWhileStmt(self, ctx: MiniRustParser.WhileStmtContext):
         cond = self.visit(ctx.expr())
         body = self.visit(ctx.block())
         return While(cond, body)
 
     def visitForStmt(self, ctx: MiniRustParser.ForStmtContext):
-        var_name = ctx.ID().getText()
+        var_name = Id(ctx.ID().getText())
         start = self.visit(ctx.expr(0))
         end = self.visit(ctx.expr(1))
         body = self.visit(ctx.block())
@@ -152,21 +161,21 @@ class ASTGenerator(MiniRustVisitor):
     # ==============================================================
     def visitExpr(self, ctx: MiniRustParser.ExprContext):
         return self.visit(ctx.assignExpr())
-    
+
     def visitLvalue(self, ctx: MiniRustParser.LvalueContext):
         result = Id(ctx.ID(0).getText())
         id_idx = 1
         expr_idx = 0
         for child in ctx.children[1:]:
             token = child.getText()
-            if token == '.':
-                result = FieldAccess(result, ctx.ID(id_idx).getText())
+            if token == ".":
+                result = FieldAccess(result, Id(ctx.ID(id_idx).getText()))
                 id_idx += 1
-            elif token == '[':
+            elif token == "[":
                 result = ArrayCell(result, self.visit(ctx.expr(expr_idx)))
                 expr_idx += 1
         return result
-    
+
     def visitAssignExpr(self, ctx: MiniRustParser.AssignExprContext):
         if ctx.lvalue():
             lhs = self.visit(ctx.lvalue())
@@ -192,7 +201,7 @@ class ASTGenerator(MiniRustVisitor):
             return left
         right = self.visit(operand[1])
         op = ctx.getChild(1).getText()
-        return BinaryOp(op, left, right) 
+        return BinaryOp(op, left, right)
 
     def visitOrExpr(self, ctx: MiniRustParser.OrExprContext):
         return self._visitLeftAssoc(ctx)
@@ -202,13 +211,13 @@ class ASTGenerator(MiniRustVisitor):
 
     def visitEqExpr(self, ctx: MiniRustParser.EqExprContext):
         return self._visitNonAssoc(ctx, ctx.relExpr)
-    
+
     def visitRelExpr(self, ctx: MiniRustParser.RelExprContext):
         return self._visitNonAssoc(ctx, ctx.addExpr)
 
     def visitAddExpr(self, ctx: MiniRustParser.AddExprContext):
         return self._visitLeftAssoc(ctx)
-    
+
     def visitMulExpr(self, ctx: MiniRustParser.MulExprContext):
         return self._visitLeftAssoc(ctx)
 
@@ -217,16 +226,16 @@ class ASTGenerator(MiniRustVisitor):
         for child in reversed(ctx.children[:-1]):
             result = UnaryOp(child.getText(), result)
         return result
-     
+
     def visitPostfixExpr(self, ctx: MiniRustParser.PostfixExprContext):
         result = self.visit(ctx.primary())
         for op_ctx in ctx.postfixOp():
-            if op_ctx.getChild(0).getText() == '.':
-                result = FieldAccess(result, op_ctx.ID().getText())
+            if op_ctx.getChild(0).getText() == ".":
+                result = FieldAccess(result, Id(op_ctx.ID().getText()))
             else:
                 result = ArrayCell(result, self.visit(op_ctx.expr()))
         return result
-    
+
     def visitPrimary(self, ctx: MiniRustParser.PrimaryContext):
         if ctx.literal():
             return self.visit(ctx.literal())
@@ -239,12 +248,14 @@ class ASTGenerator(MiniRustVisitor):
         elif ctx.ID() is not None:
             return Id(ctx.ID().getText())
         return self.visit(ctx.expr())
-    
+
     def visitCallExpr(self, ctx: MiniRustParser.CallExprContext):
-        func_name = ctx.ID().getText()
-        args = [self.visit(arg) for arg in ctx.argList().expr()] if ctx.argList() else []
+        func_name = Id(ctx.ID().getText())
+        args = (
+            [self.visit(arg) for arg in ctx.argList().expr()] if ctx.argList() else []
+        )
         return CallExpr(func_name, args)
-    
+
     def visitArgList(self, ctx: MiniRustParser.ArgListContext):
         return [self.visit(arg) for arg in ctx.expr()]
 
@@ -253,15 +264,15 @@ class ASTGenerator(MiniRustVisitor):
         return ArrayLiteral(elements)
 
     def visitStructInit(self, ctx: MiniRustParser.StructInitContext):
-        struct_name = ctx.ID().getText()
+        struct_name = Id(ctx.ID().getText())
         fields = [self.visit(f) for f in ctx.fieldInit()]
         return StructInit(struct_name, fields)
-    
-    def visitFieldInit(self,ctx: MiniRustParser.FieldInitContext):
-        field_name = ctx.ID().getText()
+
+    def visitFieldInit(self, ctx: MiniRustParser.FieldInitContext):
+        field_name = Id(ctx.ID().getText())
         expr = self.visit(ctx.expr())
         return FieldInit(field_name, expr)
-    
+
     # ==============================================================
     # Literals
     # ==============================================================
@@ -275,4 +286,3 @@ class ASTGenerator(MiniRustVisitor):
         elif ctx.TRUE():
             return BoolLiteral(True)
         return BoolLiteral(False)
-
