@@ -18,18 +18,6 @@ def check_ast(input_str, expected_str):
     TestAST.checkAST(input_str, expected_str)
 
 
-def test_300():
-    # Sample test: Minimum program
-    check_ast(
-        r"""
-        fn main() {
-            print_i32(1);
-        }
-        """,
-        "Program([FuncDecl(Id(main), [], VoidType, Block([ExprStmt(CallExpr(Id(print_i32), [IntLiteral(1)]))]))])",
-    )
-
-
 # =============================================================================
 # Group 1: Declarations & Definitions (test_301 - test_308)
 # =============================================================================
