@@ -63,15 +63,15 @@ class ASTGenerator(MiniRustVisitor):
         return StructType(Id(ctx.ID().getText()))
 
     _PRIMITIVE_TYPES_ = {
-        "i32": IntType(),
-        "f32": FloatType(),
-        "bool": BoolType(),
-        "string": StringType(),
-        "void": VoidType(),
+        "i32": IntType,
+        "f32": FloatType,
+        "bool": BoolType,
+        "string": StringType,
+        "void": VoidType,
     }
 
     def visitPrimitiveType(self, ctx: MiniRustParser.PrimitiveTypeContext):
-        return self._PRIMITIVE_TYPES_[ctx.getText()]
+        return self._PRIMITIVE_TYPES_[ctx.getText()]()
 
     def visitArrayType(self, ctx: MiniRustParser.ArrayTypeContext):
         elem_type = self.visit(ctx.typeName())
