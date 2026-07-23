@@ -55,7 +55,6 @@ class ASTGenerator(MiniRustVisitor):
     # TypeNames
     # ==============================================================
     def visitTypeName(self, ctx: MiniRustParser.TypeNameContext):
-
         if ctx.primitiveType():
             return self.visit(ctx.primitiveType())
         elif ctx.arrayType():
