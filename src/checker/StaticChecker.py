@@ -85,7 +85,11 @@ class StaticChecker(BaseVisitor):
             return source.size == 0
         if target.element_type is None:
             return False
-        return self._assignable(source.element_type, target.element_type)
+        if (isinstance(source.element_type, ArrayType)
+            and isinstance(target.element_type, ArrayType)
+        ):
+            return self._array_assignable(source.element_type, target.element_type)
+        return self._type_eq(source.element_type, target.element_type)
 
     def _assignable(self, source: Type, target: Type):
         if isinstance(source, ArrayType) and isinstance(target, ArrayType):
@@ -172,15 +176,15 @@ class StaticChecker(BaseVisitor):
             if self._struct_colors[name] == 0
             else None, self.structs.keys()
         ))
-
-        main_decl = next(filter(lambda decl: self._name(decl.name) == "main", func_decls), None)
-        if main_decl is None:
-            raise UndeclaredFunction("main")
-        main_type = self.funcs["main"]
-        if main_type.param_types or not isinstance(main_type.return_type, VoidType):
-            raise TypeMismatchInStatement(main_decl)
-
         list(map(lambda decl: self.visitFuncDecl(decl, None), func_decls))
+
+        main_type = self.funcs.get("main")
+        if (
+            main_type is None
+            or main_type.param_types
+            or not isinstance(main_type.return_type, VoidType)
+        ):
+            raise UndeclaredFunction("main")
         return None
 
     # ==========================================
@@ -257,7 +261,8 @@ class StaticChecker(BaseVisitor):
         init_type = self.visit(ast.init, env) if ast.init is not None else None
 
         if decl_type is None:
-            if (init_type is None
+            if (
+                init_type is None
                 or isinstance(init_type, VoidType)
                 or self._unknown_array_ele(init_type)
             ):
@@ -300,17 +305,17 @@ class StaticChecker(BaseVisitor):
         if case.val is None:
             default_count += 1
             if default_count > 1:
-                raise TypeMismatchInStatement(ast)
+                raise TypeMismatchInStatement(case)
             return (ast, env, switch_type, seen_values, default_count)
 
         if not isinstance(case.val, (IntLiteral, BoolLiteral)):
-            raise TypeMismatchInStatement(ast)
+            raise TypeMismatchInStatement(case)
         if not self._type_eq(switch_type, self.visit(case.val, env)):
-            raise TypeMismatchInStatement(ast)
+            raise TypeMismatchInStatement(case)
 
         key = (type(case.val), case.val.value)
         if key in seen_values:
-            raise TypeMismatchInStatement(ast)
+            raise TypeMismatchInStatement(case)
         return (ast, env, switch_type, seen_values | {key}, default_count)
 
     def _collect_initializer(self, state, initializer: FieldInit):
@@ -468,19 +473,10 @@ class StaticChecker(BaseVisitor):
                 raise TypeMismatchInExpression(ast)
             return IntType()
 
-        if ast.op in {"<", "<=", ">", ">="}:
-            if (not isinstance(l_type, numeric_types)
-                or not isinstance(r_type, numeric_types)
-                or not self._type_eq(l_type, r_type)
-            ):
-                raise TypeMismatchInExpression(ast)
-            return BoolType()
-
-        if ast.op in {"==", "!="}:
+        if ast.op in {"<", "<=", ">", ">=", "==", "!="}:
             if (
                 not isinstance(l_type, numeric_types)
                 or not isinstance(r_type, numeric_types)
-                or not self._type_eq(l_type, r_type)
             ):
                 raise TypeMismatchInExpression(ast)
             return BoolType()
@@ -572,21 +568,22 @@ class StaticChecker(BaseVisitor):
         if not ast.elements:
             return ArrayType(None, 0)
 
-        element_types = list(map(lambda element: self.visit(element, o), ast.elements))
-        if any(map(lambda ele_type: isinstance(ele_type, VoidType), element_types)):
-            raise TypeMismatchInExpression(ast)
-        all_numeric = all(map(
-            lambda ele_type: isinstance(ele_type, (IntType, FloatType)), element_types
+        element_types = list(map(
+            lambda element: self.visit(element, o), ast.elements
         ))
-        if all_numeric:
-            if any(map(lambda ele_type: isinstance(ele_type, FloatType), element_types)):
-                return ArrayType(FloatType(), len(element_types))
-            return ArrayType(IntType(), len(element_types))
+        if any(map(
+            lambda element_type: isinstance(element_type, VoidType),
+            element_types
+        )):
+            raise TypeMismatchInExpression(ast)
 
         first_type = element_types[0]
-        if not all(map(lambda ele_type: self._type_eq(ele_type, first_type), element_types)):
+        if not all(map(
+            lambda element_type: self._type_eq(element_type, first_type),
+            element_types[1:]
+        )):
             raise TypeMismatchInExpression(ast)
-        return ArrayType(first_type, len(element_types))
+        return ArrayType(first_type, len(ast.elements))
 
     def visitAssign(self, ast, o: Any) -> Any:
         lvalue_name = self._lvalue_base_name(ast.lhs)
