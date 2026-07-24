@@ -92,8 +92,6 @@ class StaticChecker(BaseVisitor):
         return self._type_eq(source.element_type, target.element_type)
 
     def _assignable(self, source: Type, target: Type):
-        if isinstance(source, ArrayType) and isinstance(target, ArrayType):
-            return self._array_assignable(source, target)
         return self._type_eq(source, target) or (
             isinstance(source, IntType) and isinstance(target, FloatType)
         )
@@ -176,15 +174,17 @@ class StaticChecker(BaseVisitor):
             if self._struct_colors[name] == 0
             else None, self.structs.keys()
         ))
-        list(map(lambda decl: self.visitFuncDecl(decl, None), func_decls))
 
-        main_type = self.funcs.get("main")
-        if (
-            main_type is None
-            or main_type.param_types
-            or not isinstance(main_type.return_type, VoidType)
-        ):
-            raise UndeclaredFunction("main")
+        main_decl = next(filter(lambda decl: self._name(decl.name) == "main", func_decls), None)
+        if main_decl is not None:
+            main_type = self.funcs["main"]
+            if (
+                main_type.param_types
+                or not isinstance(main_type.return_type, VoidType)
+            ):
+                raise TypeMismatchInStatement(main_decl)
+
+        list(map(lambda decl: self.visitFuncDecl(decl, None), func_decls))
         return None
 
     # ==========================================
@@ -258,18 +258,23 @@ class StaticChecker(BaseVisitor):
             raise Redeclared("Variable", name)
 
         decl_type = self._resolve_type(ast.var_type, ast, False) if ast.var_type is not None else None
+        if ast.init is None and not ast.is_mut:
+            raise TypeMismatchInStatement(ast)
         init_type = self.visit(ast.init, env) if ast.init is not None else None
 
         if decl_type is None:
-            if (
-                init_type is None
-                or isinstance(init_type, VoidType)
-                or self._unknown_array_ele(init_type)
-            ):
+            if init_type is None:
                 raise TypeCannotBeInferred(ast)
+            if isinstance(init_type, VoidType):
+                raise TypeCannotBeInferred(ast)
+            if self._unknown_array_ele(init_type):
+                raise TypeCannotBeInferred(ast.init)
             var_type = init_type
         else:
-            if init_type is not None and not self._assignable(init_type, decl_type):
+            if (
+                init_type is not None
+                and not self._assignable(init_type, decl_type)
+            ):
                 raise TypeMismatchInStatement(ast)
             var_type = decl_type
         env.scopes[-1][name] = VarInfo(var_type, ast.is_mut)
@@ -305,17 +310,17 @@ class StaticChecker(BaseVisitor):
         if case.val is None:
             default_count += 1
             if default_count > 1:
-                raise TypeMismatchInStatement(case)
+                raise TypeMismatchInStatement(ast)
             return (ast, env, switch_type, seen_values, default_count)
 
         if not isinstance(case.val, (IntLiteral, BoolLiteral)):
-            raise TypeMismatchInStatement(case)
+            raise TypeMismatchInStatement(ast)
         if not self._type_eq(switch_type, self.visit(case.val, env)):
-            raise TypeMismatchInStatement(case)
+            raise TypeMismatchInStatement(ast)
 
         key = (type(case.val), case.val.value)
         if key in seen_values:
-            raise TypeMismatchInStatement(case)
+            raise TypeMismatchInStatement(ast)
         return (ast, env, switch_type, seen_values | {key}, default_count)
 
     def _collect_initializer(self, state, initializer: FieldInit):
@@ -441,7 +446,7 @@ class StaticChecker(BaseVisitor):
             return  None
 
         actual_type = self.visit(ast.expr, env)
-        if isinstance(env.return_type, VoidType) or not self._type_eq(actual_type, env.return_type):
+        if not self._assignable(actual_type, env.return_type):
             raise TypeMismatchInStatement(ast)
         return None
 
@@ -477,6 +482,7 @@ class StaticChecker(BaseVisitor):
             if (
                 not isinstance(l_type, numeric_types)
                 or not isinstance(r_type, numeric_types)
+                or not self._type_eq(l_type, r_type)
             ):
                 raise TypeMismatchInExpression(ast)
             return BoolType()
@@ -507,7 +513,7 @@ class StaticChecker(BaseVisitor):
 
         arg_types = list(map(lambda arg: self.visit(arg, o), ast.args))
         if not all(map(
-            lambda pair: self._type_eq(pair[1], pair[0]),
+            lambda pair: self._assignable(pair[0], pair[1]),
                zip(arg_types, func.param_types)
         )):
             raise TypeMismatchInExpression(ast)
@@ -537,7 +543,7 @@ class StaticChecker(BaseVisitor):
         field_name = self._name(ast.field)
         field_type = self.struct_fields[struct_name].get(field_name)
         if field_type is None:
-            raise TypeMismatchInExpression(ast)
+            raise UndeclaredIdentifier(field_name)
         return field_type
 
     def visitStructInit(self, ast, o: Any) -> Any:
@@ -568,22 +574,14 @@ class StaticChecker(BaseVisitor):
         if not ast.elements:
             return ArrayType(None, 0)
 
-        element_types = list(map(
-            lambda element: self.visit(element, o), ast.elements
-        ))
-        if any(map(
-            lambda element_type: isinstance(element_type, VoidType),
-            element_types
-        )):
+        element_types = list(map(lambda element: self.visit(element, o), ast.elements))
+        if any(map(lambda ele_type: isinstance(ele_type, VoidType), element_types)):
             raise TypeMismatchInExpression(ast)
 
         first_type = element_types[0]
-        if not all(map(
-            lambda element_type: self._type_eq(element_type, first_type),
-            element_types[1:]
-        )):
+        if not all(map(lambda ele_type: self._type_eq(ele_type, first_type), element_types)):
             raise TypeMismatchInExpression(ast)
-        return ArrayType(first_type, len(ast.elements))
+        return ArrayType(first_type, len(element_types))
 
     def visitAssign(self, ast, o: Any) -> Any:
         lvalue_name = self._lvalue_base_name(ast.lhs)
