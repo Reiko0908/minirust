@@ -85,13 +85,12 @@ class StaticChecker(BaseVisitor):
             return source.size == 0
         if target.element_type is None:
             return False
-        if (isinstance(source.element_type, ArrayType)
-            and isinstance(target.element_type, ArrayType)
-        ):
-            return self._array_assignable(source.element_type, target.element_type)
-        return self._type_eq(source.element_type, target.element_type)
+
+        return self._assignable(source.element_type, target.element_type)
 
     def _assignable(self, source: Type, target: Type):
+        if (isinstance(source, ArrayType)and isinstance(target, ArrayType)):
+            return self._array_assignable(source, target)
         return self._type_eq(source, target) or (
             isinstance(source, IntType) and isinstance(target, FloatType)
         )
@@ -405,7 +404,11 @@ class StaticChecker(BaseVisitor):
     def visitSwitch(self, ast, o: Any):
         env = o
         switch_type = self.visit(ast.expr, env)
-        if not isinstance(switch_type, (IntType, BoolType)) or not ast.cases:
+        if (
+            not isinstance(switch_type, (IntType, BoolType))
+            or not ast.cases
+            or all(map(lambda case: case.val is None, ast.cases))
+        ):
             raise TypeMismatchInStatement(ast)
 
         switch_env = Environment(
@@ -428,7 +431,7 @@ class StaticChecker(BaseVisitor):
 
     def visitBreak(self, ast, o: Any):
         env = o
-        if env.loop_depth == 0 and env.switch_depth == 0:
+        if env.loop_depth == 0:
             raise MustInLoop(ast)
         return None
 
@@ -446,7 +449,7 @@ class StaticChecker(BaseVisitor):
             return  None
 
         actual_type = self.visit(ast.expr, env)
-        if not self._assignable(actual_type, env.return_type):
+        if not self._type_eq(actual_type, env.return_type):
             raise TypeMismatchInStatement(ast)
         return None
 
