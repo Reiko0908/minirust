@@ -85,19 +85,16 @@ class StaticChecker(BaseVisitor):
             return source.size == 0
         if target.element_type is None:
             return False
-        return self._assignment_compatible(source.element_type, target.element_type)
+        if (isinstance(source.element_type, ArrayType)
+            and isinstance(target.element_type, ArrayType)
+        ):
+            return self._array_assignable(source.element_type, target.element_type)
+        return self._type_eq(source.element_type, target.element_type)
 
     def _assignable(self, source: Type, target: Type):
         return self._type_eq(source, target) or (
             isinstance(source, IntType) and isinstance(target, FloatType)
         )
-    def _assignment_compatible(self, source: Type, target: Type):
-        if (
-            isinstance(source, ArrayType)
-            and isinstance(target, ArrayType)
-        ):
-            return self._array_assignable(source, target)
-        return self._assignable(source, target)
 
     def _unknown_array_ele(self, typ: Type):
        return isinstance(typ, ArrayType) and (
@@ -269,14 +266,14 @@ class StaticChecker(BaseVisitor):
             if init_type is None:
                 raise TypeCannotBeInferred(ast)
             if isinstance(init_type, VoidType):
-                raise TypeCannotBeInferred(ast.init)
+                raise TypeCannotBeInferred(ast)
             if self._unknown_array_ele(init_type):
                 raise TypeCannotBeInferred(ast.init)
             var_type = init_type
         else:
             if (
                 init_type is not None
-                and not self._assignment_compatible(init_type, decl_type)
+                and not self._assignable(init_type, decl_type)
             ):
                 raise TypeMismatchInStatement(ast)
             var_type = decl_type
@@ -408,11 +405,7 @@ class StaticChecker(BaseVisitor):
     def visitSwitch(self, ast, o: Any):
         env = o
         switch_type = self.visit(ast.expr, env)
-        if (
-            not isinstance(switch_type, (IntType, BoolType))
-            or not ast.cases
-            or all(map(lambda case: case.val is None, ast.cases))
-        ):
+        if not isinstance(switch_type, (IntType, BoolType)) or not ast.cases:
             raise TypeMismatchInStatement(ast)
 
         switch_env = Environment(
@@ -453,7 +446,7 @@ class StaticChecker(BaseVisitor):
             return  None
 
         actual_type = self.visit(ast.expr, env)
-        if not self._assignment_compatible(actual_type, env.return_type):
+        if not self._assignable(actual_type, env.return_type):
             raise TypeMismatchInStatement(ast)
         return None
 
@@ -601,7 +594,7 @@ class StaticChecker(BaseVisitor):
             raise CannotAssignToConstant(ast.lhs)
 
         r_type = self.visit(ast.rhs, o)
-        if not self._assignment_compatible(r_type, l_type):
+        if not self._assignable(r_type, l_type):
             raise TypeMismatchInExpression(ast)
         return VoidType()
 

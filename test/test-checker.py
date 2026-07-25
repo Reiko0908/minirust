@@ -546,7 +546,7 @@ def test_493():
 def test_494():
     # current checker cannot match an unresolved empty element type to i32
     source = "fn main() { let x: [i32; 0] = []; }"
-    TestChecker.checkChecker(source, "Success")
+    TestChecker.checkChecker(source, "TypeMismatchInStatement(VarDecl(Id(x), ArrayType(IntType, 0), ArrayLiteral([]), False))")
 
 def test_495():
     # nested array inference rejects rows with different lengths
@@ -599,4 +599,4 @@ fn main() {
 def test_500():
     # a void-returning call cannot provide an inferred variable type
     source = "fn main() { let x = println(); }"
-    TestChecker.checkChecker(source, "TypeCannotBeInferred(CallExpr(Id(println), []))",)
+    TestChecker.checkChecker(source, "TypeCannotBeInferred(VarDecl(Id(x), None, CallExpr(Id(println), []), False))",)
