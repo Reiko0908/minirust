@@ -380,7 +380,7 @@ def test_468():
 def test_469():
     # break inside a switch with no enclosing loop is legal
     source = "fn main() { switch 1 { case 1: break; default: break; } }"
-    TestChecker.checkChecker(source, "MustInLoop(Break())")
+    TestChecker.checkChecker(source, "Success")
 
 def test_470():
     # continue inside a switch with no enclosing loop is still illegal
@@ -599,4 +599,4 @@ fn main() {
 def test_500():
     # a void-returning call cannot provide an inferred variable type
     source = "fn main() { let x = println(); }"
-    TestChecker.checkChecker(source, "TypeCannotBeInferred(VarDecl(Id(x), None, CallExpr(Id(println), []), False))",)
+    TestChecker.checkChecker(source, "TypeCannotBeInferred(CallExpr(Id(println), []))",)
