@@ -2,11 +2,11 @@
 
 - **Student:** `@2453025`
 - **Assignment:** Assignment 3 (Static Checker)
-- **Attempt:** `3`
+- **Attempt:** `4`
 - **Evaluation:** **Passed ✅**
 
 ### 📈 Final Score Summary
-- **Static Checker:** **` 92 `** *(Passed: 92 | Penalty: -0)*
+- **Static Checker:** **` 96 `** *(Passed: 96 | Penalty: -0)*
 
 
 ### 🧪 Phase 1: Student Test Suite Evaluation (Static)
@@ -18,8 +18,8 @@
 ### 🔒 Phase 2: Hidden Tests Evaluation
 | Component | Command | Passed | Failed | Status |
 |---|---|---|---|---|
-| Static Checker | `python src/run.py test-checker` | 92 | 8 | Completed |
+| Static Checker | `python src/run.py test-checker` | 96 | 4 | Completed |
 
 
 ### 🎯 Failed Tests Summary
-- **Static Checker**: `29, 34, 35, 46, 69, 71, 91, 95`
+- **Static Checker**: `69, 71, 91, 95`
