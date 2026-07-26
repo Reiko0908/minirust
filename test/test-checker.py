@@ -536,7 +536,7 @@ def test_492():
     # an uninitialized immutable declaration is a statement mismatch
     ast_obj = Program([FuncDecl(Id("main"), [], VoidType,
                         Block([VarDecl(Id("x"), None, None, False)]))])
-    TestChecker.checkChecker(ast_obj, "TypeMismatchInStatement(VarDecl(Id(x), None, None, False))")
+    TestChecker.checkChecker(ast_obj, "TypeCannotBeInferred(VarDecl(Id(x), None, None, False))")
 
 def test_493():
     # empty array literal with no declared type cannot be inferred
@@ -546,7 +546,7 @@ def test_493():
 def test_494():
     # current checker cannot match an unresolved empty element type to i32
     source = "fn main() { let x: [i32; 0] = []; }"
-    TestChecker.checkChecker(source, "TypeMismatchInStatement(VarDecl(Id(x), ArrayType(IntType, 0), ArrayLiteral([]), False))")
+    TestChecker.checkChecker(source, "Success")
 
 def test_495():
     # nested array inference rejects rows with different lengths

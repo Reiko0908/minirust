@@ -92,6 +92,8 @@ class StaticChecker(BaseVisitor):
         return self._type_eq(source.element_type, target.element_type)
 
     def _assignable(self, source: Type, target: Type):
+        if isinstance(source, ArrayType) and isinstance(target, ArrayType):
+            return self._array_assignable(source, target)
         return self._type_eq(source, target) or (
             isinstance(source, IntType) and isinstance(target, FloatType)
         )
@@ -258,8 +260,6 @@ class StaticChecker(BaseVisitor):
             raise Redeclared("Variable", name)
 
         decl_type = self._resolve_type(ast.var_type, ast, False) if ast.var_type is not None else None
-        if ast.init is None and not ast.is_mut:
-            raise TypeMismatchInStatement(ast)
         init_type = self.visit(ast.init, env) if ast.init is not None else None
 
         if decl_type is None:
@@ -271,10 +271,10 @@ class StaticChecker(BaseVisitor):
                 raise TypeCannotBeInferred(ast.init)
             var_type = init_type
         else:
-            if (
-                init_type is not None
-                and not self._assignable(init_type, decl_type)
-            ):
+            if init_type is not None:
+                if not self._assignable(init_type, decl_type):
+                    raise TypeMismatchInStatement(ast)
+            elif not ast.is_mut:
                 raise TypeMismatchInStatement(ast)
             var_type = decl_type
         env.scopes[-1][name] = VarInfo(var_type, ast.is_mut)
@@ -311,6 +311,7 @@ class StaticChecker(BaseVisitor):
             default_count += 1
             if default_count > 1:
                 raise TypeMismatchInStatement(ast)
+            self.visit(case, env)
             return (ast, env, switch_type, seen_values, default_count)
 
         if not isinstance(case.val, (IntLiteral, BoolLiteral)):
@@ -321,6 +322,7 @@ class StaticChecker(BaseVisitor):
         key = (type(case.val), case.val.value)
         if key in seen_values:
             raise TypeMismatchInStatement(ast)
+        self.visit(case, env)
         return (ast, env, switch_type, seen_values | {key}, default_count)
 
     def _collect_initializer(self, state, initializer: FieldInit):
@@ -419,7 +421,6 @@ class StaticChecker(BaseVisitor):
             self._validate_switch_case, ast.cases,
             (ast, switch_env, switch_type, set(), 0)
         )
-        list(map(lambda case: self.visit(case, switch_env), ast.cases))
         return None
 
     def visitCase(self, ast, o: Any):
