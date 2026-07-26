@@ -170,13 +170,13 @@ class StaticChecker(BaseVisitor):
         list(map(self._struct_decl, struct_decls))
         list(map(self._func_decl, func_decls))
         list(map(lambda decl: self.visitStructDecl(decl, None), struct_decls))
-
         self._struct_colors = dict(map(lambda name: (name, 0), self.structs.keys()))
         list(map(lambda name: self._dfs_struct(name)
             if self._struct_colors[name] == 0
             else None, self.structs.keys()
         ))
 
+        list(map(lambda decl: self.visitFuncDecl(decl, None), func_decls))
         main_decl = next(filter(lambda decl: self._name(decl.name) == "main", func_decls), None)
         if main_decl is not None:
             main_type = self.funcs["main"]
@@ -185,8 +185,6 @@ class StaticChecker(BaseVisitor):
                 or not isinstance(main_type.return_type, VoidType)
             ):
                 raise TypeMismatchInStatement(main_decl)
-
-        list(map(lambda decl: self.visitFuncDecl(decl, None), func_decls))
         return None
 
     # ==========================================
