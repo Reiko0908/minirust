@@ -396,15 +396,15 @@ class StaticChecker(BaseVisitor):
             loop_depth = env.loop_depth + 1,
             switch_depth = env.switch_depth
         )
-        if isinstance(ast.body, Block):
-            list(map(lambda stmt: self.visit(stmt, loop_env), ast.body.stmts))
-        else:
-            self.visit(ast.body, loop_env)
+        self.visit(ast.body, loop_env)
         return None
 
     def visitSwitch(self, ast, o: Any):
         env = o
-        switch_type = self.visit(ast.expr, env)
+        try:
+            switch_type = self.visit(ast.expr, env)
+        except TypeMismatchInExpression:
+            raise TypeMismatchInStatement(ast)
         if not isinstance(switch_type, (IntType, BoolType)) or not ast.cases:
             raise TypeMismatchInStatement(ast)
 
@@ -585,7 +585,7 @@ class StaticChecker(BaseVisitor):
     def visitAssign(self, ast, o: Any) -> Any:
         lvalue_name = self._lvalue_base_name(ast.lhs)
         if lvalue_name is None:
-            raise TypeMismatchInExpression(ast)
+            raise CannotAssignToConstant(ast.lhs)
 
         l_type = self.visit(ast.lhs, o)
         lvalue_info = self._lookup_var(lvalue_name, o)
