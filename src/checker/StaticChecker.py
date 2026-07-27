@@ -401,10 +401,7 @@ class StaticChecker(BaseVisitor):
 
     def visitSwitch(self, ast, o: Any):
         env = o
-        try:
-            switch_type = self.visit(ast.expr, env)
-        except TypeMismatchInExpression:
-            raise TypeMismatchInStatement(ast)
+        switch_type = self.visit(ast.expr, env)
         if not isinstance(switch_type, (IntType, BoolType)) or not ast.cases:
             raise TypeMismatchInStatement(ast)
 
@@ -481,7 +478,6 @@ class StaticChecker(BaseVisitor):
             if (
                 not isinstance(l_type, numeric_types)
                 or not isinstance(r_type, numeric_types)
-                or not self._type_eq(l_type, r_type)
             ):
                 raise TypeMismatchInExpression(ast)
             return BoolType()
