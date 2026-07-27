@@ -520,7 +520,7 @@ fn main() {
 def test_489():
     # program with no main function at all
     source = "fn helper() {}"
-    TestChecker.checkChecker(source, "Success")
+    TestChecker.checkChecker(source, "UndeclaredFunction(main)")
 
 def test_490():
     # a function named main with parameters is not a valid MiniRust entry point

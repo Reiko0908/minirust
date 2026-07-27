@@ -178,13 +178,14 @@ class StaticChecker(BaseVisitor):
 
         list(map(lambda decl: self.visitFuncDecl(decl, None), func_decls))
         main_decl = next(filter(lambda decl: self._name(decl.name) == "main", func_decls), None)
-        if main_decl is not None:
-            main_type = self.funcs["main"]
-            if (
-                main_type.param_types
-                or not isinstance(main_type.return_type, VoidType)
-            ):
-                raise TypeMismatchInStatement(main_decl)
+        if main_decl is None:
+            raise UndeclaredFunction("main")
+        main_type = self.funcs["main"]
+        if (
+            main_type.param_types
+            or not isinstance(main_type.return_type, VoidType)
+        ):
+            raise TypeMismatchInStatement(main_decl)
         return None
 
     # ==========================================
