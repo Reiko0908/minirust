@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from functools import reduce
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
+from checker.StaticError import *
 from utils.AST import *
 from utils.Visitor import BaseVisitor
-from checker.StaticError import *
+
 
 # ===============================================
 # Symbol-table Data Structures
@@ -16,14 +17,14 @@ class VarInfo:
 
 @dataclass
 class FunctionType:
-    param_types: List[Type]
+    param_types: list[Type]
     return_type: Type
 
 @dataclass
 class Environment:
-    scopes: List[Dict[str, VarInfo]]
-    param_names: Set[str]
-    return_type: Optional[Type]
+    scopes: list[dict[str, VarInfo]]
+    param_names: set[str]
+    return_type: Type | None
     loop_depth: int = 0
     switch_depth: int = 0
 
@@ -48,10 +49,10 @@ BUILTIN_FUNCS = {
 class StaticChecker(BaseVisitor):
     def __init__(self, ast_obj=None):
         self.ast = ast_obj
-        self.structs: Dict[str, StructDecl] = {}
-        self.struct_fields: Dict[str, Dict[str, Type]] = {}
-        self.funcs: Dict[str, FunctionType] = dict(BUILTIN_FUNCS)
-        self._struct_colors: Dict[str, int] = {}
+        self.structs: dict[str, StructDecl] = {}
+        self.struct_fields: dict[str, dict[str, Type]] = {}
+        self.funcs: dict[str, FunctionType] = dict(BUILTIN_FUNCS)
+        self._struct_colors: dict[str, int] = {}
 
     def check(self):
         if self.ast is not None:
@@ -65,7 +66,7 @@ class StaticChecker(BaseVisitor):
     def _name(id: Any):
         return id.name if isinstance(id, Id) else str(id)
 
-    def _type_eq(self, left: Optional[Type], right: Optional[Type]):
+    def _type_eq(self, left: Type | None, right: Type | None):
         if left is None or right is None:
             return left is right
         if type(left) is not type(right):
@@ -147,7 +148,7 @@ class StaticChecker(BaseVisitor):
         return_type = self._resolve_type(decl.return_type, decl, True)
         self.funcs[func_name] = FunctionType(param_types, return_type)
 
-    def _validate_param(self, seen: Set[str], param: VarDecl):
+    def _validate_param(self, seen: set[str], param: VarDecl):
         param_name = self._name(param.name)
         if param_name in seen:
             raise Redeclared("Parameter", param_name)
@@ -200,7 +201,7 @@ class StaticChecker(BaseVisitor):
         self.struct_fields[ast.name.name] = fields
         return None
 
-    def _add_struct_field(self, state: Tuple[Set[str], Dict[str, Type]], field: VarDecl):
+    def _add_struct_field(self, state: tuple[set[str], dict[str, Type]], field: VarDecl):
         seen, fields = state
         field_name = self._name(field.name)
         if field_name in seen:
@@ -210,7 +211,7 @@ class StaticChecker(BaseVisitor):
         fields[field_name] = field_type
         return (seen, fields)
 
-    def _struct_name(self, typ: Optional[Type]):
+    def _struct_name(self, typ: Type | None):
         if isinstance(typ, StructType):
             return self._name(typ.name)
         if isinstance(typ, ArrayType):
@@ -238,7 +239,7 @@ class StaticChecker(BaseVisitor):
     # ==========================================
     def visitFuncDecl(self, ast, o: Any):
         func_sig = self.funcs[self._name(ast.name)]
-        param_scope: Dict[str, VarInfo] = dict(map(
+        param_scope: dict[str, VarInfo] = dict(map(
             lambda pair: (
                 self._name(pair[0].name), VarInfo(pair[1], False)
             ),
