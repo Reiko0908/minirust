@@ -184,7 +184,7 @@ class CodeGenerator(BaseVisitor):
                 self._jvm_type(symbol.type),start_label, end_label,
             )
         )
-        return frame, symbols + [symbol], start_label, end_label
+        return frame, [symbol] + symbols, start_label, end_label
 
     def _default_init(self, symbol: Symbol, frame: Frame) -> str:
         typ = symbol.type
@@ -393,26 +393,26 @@ class CodeGenerator(BaseVisitor):
         scope_start = o.frame.get_start_label()
         scope_end = o.frame.get_end_label()
         loop_var = Symbol(self._name(ast.var_name), IntType(), Index(o.frame.get_new_index()))
-        end_var = Symbol("", IntType(), Index(o.frame.get_new_index()))
-        self._method_locals.extend((loop_var, end_var))
+        self._method_locals.append(loop_var)
         var_start = o.frame.get_new_label()
         cond_label = o.frame.get_new_label()
 
         start_code, _ = self._expr(ast.start, o, IntType())
         loop_idx = loop_var.value.value
-        end_idx = end_var.value.value
         start_code += self.emit.emit_write_var(loop_var.name, loop_var.type, loop_idx, o.frame)
-        end_code, _ = self._expr(ast.end, o, IntType())
-        end_code += self.emit.emit_write_var(end_var.name, end_var.type, end_idx, o.frame)
-        compare_code = self.emit.emit_read_var(loop_var.name, loop_var.type, loop_idx, o.frame)
-        compare_code += self.emit.emit_read_var(end_var.name, end_var.type, end_idx, o.frame)
 
         o.frame.enter_loop()
         cont_label = o.frame.get_continue_label()
         exit_label = o.frame.get_break_label()
         loop_symbols = [loop_var] + list(o.sym)
+        loop_context = self._subbody(o.frame, loop_symbols)
+        compare_code = self.emit.emit_read_var(
+            loop_var.name, loop_var.type, loop_idx, o.frame
+        )
+        end_code, _ = self._expr(ast.end, loop_context, IntType())
+        compare_code += end_code
         self.break_target.append(exit_label)
-        body_code = self.visit(ast.body, self._subbody(o.frame, loop_symbols))
+        body_code = self.visit(ast.body, loop_context)
         self.break_target.pop()
         self._var_directives.append(
             self.emit.emit_var(
@@ -424,7 +424,6 @@ class CodeGenerator(BaseVisitor):
         code = self.emit.emit_label(scope_start, None)
         code += self.emit.emit_label(var_start, None)
         code += start_code
-        code += end_code
         code += self.emit.emit_label(cond_label, None)
         code += compare_code
         code += self.emit.emit_if_icmpge(exit_label, o.frame)
@@ -660,16 +659,18 @@ class CodeGenerator(BaseVisitor):
         if isinstance(ast.lhs, Id):
             sym = self._lookup(o.sym, self._name(ast.lhs))
             value_code, _ = self._expr(ast.rhs, o, sym.type)
+            value_code += self.emit.emit_dup(o.frame)
             store_code, _ = self._expr(ast.lhs, o, sym.type, is_left=True)
-            return value_code + store_code, VoidType()
+            return value_code + store_code, sym.type
         if isinstance(ast.lhs, ArrayCell):
             array_code, array_type = self._expr(ast.lhs.arr, o)
             idx_code, _ = self._expr(ast.lhs.idx, o, IntType())
             target_type = array_type.element_type
             value_code, _ = self._expr(ast.rhs, o, array_type.element_type)
             code = array_code + idx_code + value_code
+            code += self.emit.emit_dup_x2(o.frame)
             code += self.emit.emit_array_store(target_type, o.frame)
-            return code, VoidType()
+            return code, target_type
         if isinstance(ast.lhs, FieldAccess):
             obj_code, obj_type = self._expr(ast.lhs.obj, o)
             struct_name = self._name(obj_type.name)
@@ -678,11 +679,12 @@ class CodeGenerator(BaseVisitor):
             target_type = self.structs[struct_name].fields[field_name]
             value_code, _ = self._expr(ast.rhs, o, target_type)
             code = obj_code + value_code
+            code += self.emit.emit_dup_x1(o.frame)
             code += self.emit.emit_put_field(
                 f"{jvm_struct_name}/{self._jvm_name(field_name, '_mr_field_')}",
                 self._jvm_type(target_type), o.frame,
             )
-            return code, VoidType()
+            return code, target_type
         raise ValueError(f"Unsupported assignment target: {ast.lhs}")
 
     # -------------------------------------------

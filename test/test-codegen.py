@@ -253,7 +253,7 @@ def test_523():
         }
     }
     """
-    check_codegen(source, "se012")
+    check_codegen(source, "se0e1e2e")
 
 
 def test_524():
